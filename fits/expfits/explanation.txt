@@ -1,0 +1,2 @@
+This folder contains exponentially modified Gaussians, e.g. Gaussians convolved with exponential distributions.
+It doesn't have its own Jupyter notebook because it's just from the gf3fit with the gaussian part turned off
