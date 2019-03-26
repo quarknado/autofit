@@ -9,6 +9,9 @@ from scipy.signal import find_peaks_cwt
 from scipy.signal import gaussian
 import glob
 import pandas as pd
+import matplotlib.pyplot as plt
+
+import adminfunctions as ad
 
 smoothlength = 200 #number of points in smooting gaussian
 
@@ -128,3 +131,55 @@ def context(xval, yval, cent, window):
     ycontext = yval[xix]
 
     return xcontext, ycontext
+
+def contaminantclipper(x, y):
+    #get the user to input a valid set of bounds in which to delete the contaminant
+    while True:    
+        lb = input('input a lower bound on the contaminant in channels')
+        ub = input('input an upper bound on the contaminant in channels')
+        if np.chararray.isdigit(ub + lb):
+            lb = int(lb)
+            ub = int(ub)
+            if (lb > min(x) and ub > lb and ub < max(x)):
+                break             
+        print('Invalid bounds, try again')
+
+    ub, lb = boundconvert(x,y,ub,lb)
+    x21 = np.array(np.where(x < lb))
+    x22 = np.array(np.where(x > ub))    
+    inds = np.append(x21,x22)    
+    return [x[inds], y[inds]]
+   
+    
+def boundconvert(x,y,ub,lb):
+    lb2 = np.where(x > lb)
+    ub2 = np.where(x < ub)
+
+    inds = np.intersect1d(lb2,ub2)
+    ub2 = np.max(inds)
+    lb2 = np.min(inds)
+    return [ub2,lb2]
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

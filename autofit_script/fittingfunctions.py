@@ -49,12 +49,3 @@ def lnlike(p0, x, y):
     
     return ll
 
-def bndconv(ub,lb,x):
-    lb2 = np.where(x > lb)
-    ub2 = np.where(x < ub)
-
-    inds = np.intersect1d(lb2,ub2)
-    ub2 = np.max(inds)
-    lb2 = np.min(inds)
-
-    return[lb2,ub2]
