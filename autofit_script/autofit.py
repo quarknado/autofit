@@ -26,13 +26,10 @@ fileno = ad.listfiles(directory)
 fileselect = 1#ad.inputfileselector(fileno)
 f = ad.openfilefromlist(fileselect, directory)
 
-xinit, yinit = ad.file_reader(directory + '/' + f)
+x, yinit = ad.file_reader(directory + '/' + f)
 
 
-spe = plt.figure(figsize = (15,7))
-ax = spe.add_subplot(111)
-ax.plot(xinit, yinit)
-ax.set_xticks(np.arange(0,max(xinit), 100))
+spe = ad.spectrum_plotter(x, yinit)
 spe.show()
 
 '''
@@ -42,26 +39,30 @@ spe.show()
 cont_del = 'y'# ad.y_or_n("Here is your spectrum. Would you like to remove any contaminants?")
 
 if cont_del == 'y':
-    xclip, yclip = [xinit, yinit]
+    yclip = yinit
 
     while True:
         
-        xclipbuffer, yclipbuffer = [xclip, yclip]
-        plt.plot(xclip, yclip)
-        plt.show()        
-        xclip, yclip = sig.contaminantclipper(xclip, yclip)
-        plt.plot(xclip, yclip)
-        plt.show()
+        yclipbuffer = yclip
+        
+        clip_spectrum = ad.spectrum_plotter(x, yclip)
+        clip_spectrum.show()        
+        
+        yclip = sig.contaminantclipper(x, yclip)
+        
+        clip_spectrum = ad.spectrum_plotter(x, yclip)
+        clip_spectrum.show() 
+        
         confirmclip = ad.y_or_n('Are you happy with this removal?')
 
         if confirmclip == 'n':
 
             cancel = ad.y_or_n('Are you sure there are any contaminants?')
             if cancel == 'n':
-                xclip, yclip = [xinit, yinit]
+                yclip = yinit
                 break
             if cancel == 'y':
-                xclip, yclip = [xclipbuffer, yclipbuffer]
+                yclip = yclipbuffer
                 continue
             
         else:
@@ -73,12 +74,22 @@ if cont_del == 'y':
             continue
         else:
             break
+'''
+##########################################Threshold set and fitting###########################################################
+'''
 
-plt.plot(xclip,yclip)
+width = float(input('What is the approximate FWHM of your peaks in channels'))/(2 * np.sqrt(2*np.log(2)))
 
+ysmooth = sig.smoothe(yclip, width)
 
+smooth_spectrum = ad.spectrum_plotter(x, ysmooth)
+smooth_spectrum.show()
 
+thresh = float(input('what threshold would you like to constitute a peak?'))
 
+[xthresh, ythresh] = sig.clipspectrum(x, yclip, ysmooth, thresh)
+peak_regions = sig.split_spectrum(xthresh, ythresh, width)
+sig.plotall(peak_regions, x, yclip)
 
 
 

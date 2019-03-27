@@ -44,7 +44,7 @@ def clipspectrum(xvalues, yvalues, smoothedy, threshold):
 
     return xthreshold, ythreshold
 
-def split_spectrum(xthreshold, ythreshold):
+def split_spectrum(xthresh, ythreshold, min_region_size):
 
     #now separate these into different objects to be fitted separately
     peak_regions = []
@@ -55,7 +55,7 @@ def split_spectrum(xthreshold, ythreshold):
 
     #go along the spectrum and separate it into peak regions by detecting where the gaps are 
     for i in range(len(xthresh)):
-        xreg.append(xthreshold[i])
+        xreg.append(xthresh[i])
         yreg.append(ythreshold[i])
     
     
@@ -73,10 +73,10 @@ def split_spectrum(xthreshold, ythreshold):
 
     return peak_regions
 
-def plotall(peak_regions, xvalues, yvalues):
+def plotall(regions, xvalues, yvalues):
 
     fig = pl.figure(figsize = (19, 10))
-    nrows = np.ceil(len(peak_regions)/4)
+    nrows = np.ceil(len(regions)/4)
     ncols = 8
     i = 1
     for x,y in regions:
@@ -89,7 +89,7 @@ def plotall(peak_regions, xvalues, yvalues):
         x2, y2 = context(xvalues, yvalues, centroid, 100)
     
         ax2 = fig.add_subplot(nrows, ncols, i+1)
-        ax2.plot(x2,y2)
+        ax2.plot(x2,y2, color = 'xkcd:orange')
         i = i+2
 
     fig.tight_layout()
@@ -123,7 +123,7 @@ def context(xval, yval, cent, window):
         if cix < window:
             xix = np.arange(0, cix + window)
         else:
-            xix = np.arange(cix - window, len(xvals))
+            xix = np.arange(cix - window, len(xval))
 
     #now visualise this    
     #print(xix)
@@ -144,11 +144,24 @@ def contaminantclipper(x, y):
                 break             
         print('Invalid bounds, try again')
 
-    ub, lb = boundconvert(x,y,ub,lb)
-    x21 = np.array(np.where(x < lb))
-    x22 = np.array(np.where(x > ub))    
-    inds = np.append(x21,x22)    
-    return [x[inds], y[inds]]
+    #ub, lb = boundconvert(x,y,ub,lb)
+    x21 = np.where(x < lb)[0]
+    x22 = np.where(x > ub)[0]    
+    
+    y21 = y[x21]
+    y22 = y[x22]
+
+    length_difference  = len(x) - len(x21) - len(x22)
+
+    
+
+    y20 = np.zeros(length_difference)
+
+
+    ynew = np.append(y21, y20)
+    ynew = np.append(ynew, y22)
+    
+    return ynew
    
     
 def boundconvert(x,y,ub,lb):

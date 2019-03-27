@@ -4,6 +4,7 @@
 
 import os
 import numpy as np
+import matplotlib.pyplot as plt
 
 def file_reader(handle):
     
@@ -93,3 +94,16 @@ def openfilefromlist(fileselect, directory):
     for roots, dirs, filenames in os.walk(directory):
         f = filenames[fileselect-1]
     return f
+
+def spectrum_plotter(x, y):
+    fig = plt.figure(figsize = (15,7))
+    ax = fig.add_subplot(111)
+    ax.plot(x, y)
+    ax.set_xticks(np.arange(0,max(x), 100))
+
+    return fig
+
+
+
+
+
