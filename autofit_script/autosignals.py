@@ -131,37 +131,6 @@ def context(xval, yval, cent, window):
     ycontext = yval[xix]
 
     return xcontext, ycontext
-
-def contaminantclipper(x, y):
-    #get the user to input a valid set of bounds in which to delete the contaminant
-    while True:    
-        lb = input('input a lower bound on the contaminant in channels')
-        ub = input('input an upper bound on the contaminant in channels')
-        if np.chararray.isdigit(ub + lb):
-            lb = int(lb)
-            ub = int(ub)
-            if (lb > min(x) and ub > lb and ub < max(x)):
-                break             
-        print('Invalid bounds, try again')
-
-    #ub, lb = boundconvert(x,y,ub,lb)
-    x21 = np.where(x < lb)[0]
-    x22 = np.where(x > ub)[0]    
-    
-    y21 = y[x21]
-    y22 = y[x22]
-
-    length_difference  = len(x) - len(x21) - len(x22)
-
-    
-
-    y20 = np.zeros(length_difference)
-
-
-    ynew = np.append(y21, y20)
-    ynew = np.append(ynew, y22)
-    
-    return ynew
    
     
 def boundconvert(x,y,ub,lb):
@@ -172,11 +141,72 @@ def boundconvert(x,y,ub,lb):
     ub2 = np.max(inds)
     lb2 = np.min(inds)
     return [ub2,lb2]
+
+def contaminant_clipper(x, yinit):    
+    yclip = yinit
+
+    while True:
+        
+        yclipbuffer = yclip
+        
+        clip_spectrum = ad.spectrum_plotter(x, yclip)
+        clip_spectrum.show()        
+        
+        #get the user to input a valid set of bounds in which to delete the contaminant
+        while True:    
+            lb = input('input a lower bound on the contaminant in channels')
+            ub = input('input an upper bound on the contaminant in channels')
+            if np.chararray.isdigit(ub + lb):
+                lb = int(lb)
+                ub = int(ub)
+                if (lb > min(x) and ub > lb and ub < max(x)):
+                    break             
+            print('Invalid bounds, try again')
+
+        #ub, lb = boundconvert(x,y,ub,lb)
+        x21 = np.where(x < lb)[0]
+        x22 = np.where(x > ub)[0]    
     
+        y21 = yclip[x21]
+        y22 = yclip[x22]
+
+        length_difference  = len(x) - len(x21) - len(x22)
+
+        y20 = np.zeros(length_difference)
 
 
+        ynew = np.append(y21, y20)
+        ynew = np.append(ynew, y22)
+
+        yclip = ynew
+        
+        clip_spectrum = ad.spectrum_plotter(x, yclip)
+        clip_spectrum.show() 
+        
+        confirmclip = ad.y_or_n('Are you happy with this removal?')
+
+        if confirmclip == 'n':
+
+            cancel = ad.y_or_n('Are you sure there are any contaminants?')
+            if cancel == 'n':
+                yclip = yinit
+                break
+            if cancel == 'y':
+                yclip = yclipbuffer
+                continue
+            
+        else:
+            pass
+
+    
+        moreclip = ad.y_or_n('Would you like to remove any more contaminants?')
+        if moreclip == 'y':
+            continue
+        else:
+            break
 
 
+    return ynew
 
 
 

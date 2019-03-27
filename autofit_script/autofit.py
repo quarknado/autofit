@@ -39,61 +39,45 @@ spe.show()
 cont_del = 'y'# ad.y_or_n("Here is your spectrum. Would you like to remove any contaminants?")
 
 if cont_del == 'y':
-    yclip = yinit
+    yclip = sig.contaminant_clipper(x,yinit)
 
-    while True:
-        
-        yclipbuffer = yclip
-        
-        clip_spectrum = ad.spectrum_plotter(x, yclip)
-        clip_spectrum.show()        
-        
-        yclip = sig.contaminantclipper(x, yclip)
-        
-        clip_spectrum = ad.spectrum_plotter(x, yclip)
-        clip_spectrum.show() 
-        
-        confirmclip = ad.y_or_n('Are you happy with this removal?')
+'''
+##########################################Threshold set and Peak Region Detection###########################################################
+'''
+while True:
+    width = float(input('What is the approximate FWHM of your peaks in channels'))/(2 * np.sqrt(2*np.log(2)))
 
-        if confirmclip == 'n':
+    ysmooth = sig.smoothe(yclip, width)
 
-            cancel = ad.y_or_n('Are you sure there are any contaminants?')
-            if cancel == 'n':
-                yclip = yinit
-                break
-            if cancel == 'y':
-                yclip = yclipbuffer
-                continue
-            
-        else:
-            pass
+    smooth_spectrum = ad.spectrum_plotter(x, ysmooth)
+    smooth_spectrum.show()
 
+    thresh = float(input('what threshold would you like to constitute a peak?'))
+
+    [xthresh, ythresh] = sig.clipspectrum(x, yclip, ysmooth, thresh)
+    peak_regions = sig.split_spectrum(xthresh, ythresh, width)
+    sig.plotall(peak_regions, x, yclip)
+
+
+    recontaminant = ad.y_or_n('Would you like to re-clip for any more contaminants?')
     
-        moreclip = ad.y_or_n('Would you like to remove any more contaminants?')
-        if moreclip == 'y':
-            continue
-        else:
-            break
+    if recontaminant == 'y':
+        yclip = sig.contaminant_clipper(x, yclip)
+        continue
+    else:
+        pass
+
+    final_regions = ad.y_or_n('Would you like to re-tune the widths and thresholds for improved peak region detection?')
+
+    if final_regions == 'y':
+        continue
+    else:
+        break
+
+
 '''
-##########################################Threshold set and fitting###########################################################
+###########################################Fitting##################################
 '''
-
-width = float(input('What is the approximate FWHM of your peaks in channels'))/(2 * np.sqrt(2*np.log(2)))
-
-ysmooth = sig.smoothe(yclip, width)
-
-smooth_spectrum = ad.spectrum_plotter(x, ysmooth)
-smooth_spectrum.show()
-
-thresh = float(input('what threshold would you like to constitute a peak?'))
-
-[xthresh, ythresh] = sig.clipspectrum(x, yclip, ysmooth, thresh)
-peak_regions = sig.split_spectrum(xthresh, ythresh, width)
-sig.plotall(peak_regions, x, yclip)
-
-
-
-
 
 
 
