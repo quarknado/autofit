@@ -7,7 +7,7 @@ import scipy.optimize as op
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.special import erfc
-from scipy.signal import find_peaks_cwt
+from scipy.signal import find_peaks_cwt, find_peaks
 import glob
 import os
 
@@ -45,7 +45,9 @@ if cont_del == 'y':
 ##########################################Threshold set and Peak Region Detection###########################################################
 '''
 while True:
-    width = float(input('What is the approximate FWHM of your peaks in channels'))/(2 * np.sqrt(2*np.log(2)))
+    FWHM = float(input('What is the approximate FWHM of your peaks in channels'))
+    width = FWHM/(2 * np.sqrt(2*np.log(2)))
+
 
     ysmooth = sig.smoothe(yclip, width)
 
@@ -74,11 +76,34 @@ while True:
     else:
         break
 
+fig = plt.figure(figsize = (15,7))
+axis = fig.add_subplot(111)
+
+axis.plot(x,yinit, color = 'xkcd:light grey')
+for x2,y in peak_regions:
+    axis.plot(x2,y)
+
 
 '''
 ###########################################Fitting##################################
 '''
 
+peak_positions = []
+
+for x2, y in peak_regions:
+    ys = sig.smoothe(y, width/4, length = len(y))
+    #peak_positions += np.rint(min(x2) + (find_peaks_cwt(ys, widths = np.arange( width ,FWHM))).astype('int')).tolist()
+
+    peak_positions += (min(x2) + find_peaks_cwt(ys, widths = np.arange( width ,FWHM))).tolist()
+#peak_positions = np.array(peak_positions, dtype = 'int')
+print(peak_positions)
+
+pos = np.zeros(len(x))
+pos[np.intersect1d(x, peak_positions, return_indices = True)[1]] = 1000
+    
+axis.plot(x,pos, linewidth = 1)
+
+plt.show()
 
 
 

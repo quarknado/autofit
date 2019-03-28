@@ -15,9 +15,9 @@ import adminfunctions as ad
 
 smoothlength = 200 #number of points in smooting gaussian
 
-def smoothe(yvals, smoothwidth):
+def smoothe(yvals, smoothwidth, length = smoothlength):
     #need to smooth over the noise so I can more effectively grab fitting regions
-    g = gaussian(smoothlength, smoothwidth)
+    g = gaussian(length, smoothwidth)
     g = g/np.trapz(g) #normalise the gaussian so the scale is preserved after convolution
 
     return np.convolve(yvals,g,'same')
