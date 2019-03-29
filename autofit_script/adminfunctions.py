@@ -104,6 +104,28 @@ def spectrum_plotter(x, y):
     return fig
 
 
+def template_finder(peak_regions, peak_positions, peaks_figure):
+
+    for i,p in enumerate(peak_positions):
+        print( '[' + str(i) + ']: ' + str(p))
+
+    template_select = None
+
+    while template_select == None:
+    
+        try:
+            peaks_figure.show()
+            template_select = int(input('Which peak is the most suitable as a template to fix parameters to The region containing it will be what is fitted.'))
+            for x2, y in peak_regions:
+                if len(np.intersect1d(peak_positions[template_select], x2)) == 1:
+                    template = [x2, y]
+
+        except:
+            template_select = None
+
+    plt.plot(template[0], template[1])
+    plt.show()
+
 
 
 
