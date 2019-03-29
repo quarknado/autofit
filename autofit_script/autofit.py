@@ -89,15 +89,10 @@ for x2,y in peak_regions:
 ###########################################Fitting##################################
 '''
 
-peak_positions = []
+peak_positions, region_positions = fit.peak_finder(peak_regions, width, FWHM)
+print(region_positions)
 
-for x2, y in peak_regions:
-    ys = sig.smoothe(y, width/4, length = len(y))
 
-    reg_positions = find_peaks_cwt(ys, widths = np.arange( width ,FWHM))
-    peak_positions += (min(x2) + find_peaks_cwt(ys, widths = np.arange( width ,FWHM))).tolist()
-
-print(peak_positions)
 
 pos = np.zeros(len(x))
 pos[np.intersect1d(x, peak_positions, return_indices = True)[1]] = 1000
@@ -106,8 +101,9 @@ axis.plot(x,pos, linewidth = 1)
 
 plt.show()
 
-ad.template_finder(peak_regions, peak_positions, fig)
+template, template_pos = fit.template_finder(peak_regions, peak_positions, region_positions,fig)
 
+print(template_pos)
 
 
 
