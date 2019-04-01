@@ -62,6 +62,8 @@ def split_spectrum(xthresh, ythreshold, min_region_size):
         if i != len(xthresh) - 1: #checking we aren't at the end of the array
             if xthresh[i] != xthresh[i+1] - 1:
                 if len(xreg) > min_region_size: #make sure these regions are actually big enough to fit, wider than the template peak width
+                    xreg = np.array(xreg)
+                    yreg = np.array(yreg)
                     peak_regions.append([xreg,yreg])
                 #clean these temporary things up
                 xreg = []
@@ -69,6 +71,8 @@ def split_spectrum(xthresh, ythreshold, min_region_size):
 
         else:
             if len(xreg) > min_region_size:
+                xreg = np.array(xreg)
+                yreg = np.array(yreg)
                 peak_regions.append([xreg,yreg])
 
     return peak_regions

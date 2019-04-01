@@ -105,7 +105,7 @@ template, template_pos = fit.template_finder(peak_regions, peak_positions, regio
 
 print(template_pos)
 
-
+print(fit.fit(template[0], template[1], template_pos, width, FWHM, rbfix = False))
 
 
 
