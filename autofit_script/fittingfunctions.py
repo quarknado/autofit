@@ -97,6 +97,12 @@ def peak_finder(peak_regions, w, fwhm):
 
 nll = lambda *args: -lnlike(*args)
 
+def pyield(A, s, r, b):
+    part1 = s * np.sqrt(2 * np.pi) * A * (1 - r/100)
+    part2 = 2 * A * r * b/100 * np.exp(-(s**2)/(2 * b**2))
+    
+    return part1 + part2
+
 def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True):
     
     if beta == None: beta = FWHM
@@ -131,7 +137,7 @@ def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True):
         p0.append(amp)
         p0.append(pos)
     
-
+    yieldarr = []
     bnds = []
     for peak in muarr:
         for bound in bnd:
@@ -150,17 +156,29 @@ def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True):
         for i in range(nopeaks):
             p2 = [p1[i * 2], p1[i * 2 + 1], p1[-3], p1[-2], p1[-1]]
             ymod += gf3(p2,x)        
+            yiel = pyield(p1[i * 2],p1[-3],mets[1],mets[2])
+            yieldarr.append(yiel)
+
     else:
         bnds.append(metabnd[0])
         p0.append(mets[0])
         result = op.minimize(nll, p0, bounds=bnds, args=(x,y, mets))
         p1 = result["x"]
         for i in range(nopeaks):
-            p2 = [p1[i * 2], p1[i * 2 + 1], p1[-1], mets[1], mets[2]]
+            p2 = [p1[i * 2], p1[i * 2], p1[-1], mets[1], mets[2]]
             ymod += gf3(p2,x)
 
+            yiel = pyield(p1[i * 2],p1[-1],mets[1],mets[2])
+            yieldarr.append(yiel) 
+
+
     p1cov = result["hess_inv"].todense()
+
+    print('yield = ', yieldarr, '\nsum = )', np.sum(y))
+    plt.plot(x,y)
+    plt.plot(x,ymod)
+    plt.show()
+
     return(p1, ymod, p1cov)
     
     
-
