@@ -138,6 +138,7 @@ def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True):
         p0.append(pos)
     
     yieldarr = []
+    yerrarr = []
     bnds = []
     for peak in muarr:
         for bound in bnd:
@@ -156,7 +157,7 @@ def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True):
         for i in range(nopeaks):
             p2 = [p1[i * 2], p1[i * 2 + 1], p1[-3], p1[-2], p1[-1]]
             ymod += gf3(p2,x)        
-            yiel = pyield(p1[i * 2],p1[-3],mets[1],mets[2])
+            yiel = pyield(p2[0],p2[2],p2[3],p2[4])
             yieldarr.append(yiel)
 
     else:
@@ -165,10 +166,10 @@ def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True):
         result = op.minimize(nll, p0, bounds=bnds, args=(x,y, mets))
         p1 = result["x"]
         for i in range(nopeaks):
-            p2 = [p1[i * 2], p1[i * 2], p1[-1], mets[1], mets[2]]
+            p2 = [p1[i * 2], p1[i * 2 + 1], p1[-1], mets[1], mets[2]]
             ymod += gf3(p2,x)
 
-            yiel = pyield(p1[i * 2],p1[-1],mets[1],mets[2])
+            yiel = pyield(p2[0],p2[2],p2[3],p2[4])
             yieldarr.append(yiel) 
 
 
@@ -181,4 +182,22 @@ def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True):
 
     return(p1, ymod, p1cov)
     
+def yerr(Y,A,s,r,b,cov):
     
+    dYdA = Y/A
+    dYdr = (Y - s * np.sqrt(2 * np.pi) * A)/r
+    dYds = np.sqrt(2 * np.pi) * A * (1 - r/100) - (2 * A * r * s * np.exp(-s**2/(2 * b**2)))/ (100 * b)
+    dYdb = (2/100) * A * r *  np.exp(-s**2/(2 * b**2)) * (1 + s**2/b**2)
+    
+    vAA, vAm, vAs,vAr, vAb = cov[0]
+    vmA, vmm, vms,vmr, vbb = cov[1]
+    vsA, vsm, vss,vsr, vsb = cov[2]
+    vrA, vrm, vrs,vrr, vrb = cov[3]
+    vbA, vbm, vbs,vbr, vbb = cov[4]
+    
+    vY = (dYdA**2 * vAA) + (dYds**2 * vss) + (dYdr**2 * vrr) + (dYdb**2 * vbb) + (2 * dYdA * dYds * vAs) + (2 * dYdA * dYdr * vAr) + (2 * dYdA * dYdb * vAb) + (2 * dYds * dYdr * vsr) + (2 * dYds * dYdb * vsb) + (2 * dYdr * dYdb * vrb)
+    return(vY)
+
+
+#def shrinkcov(cov, i):
+        
