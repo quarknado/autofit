@@ -42,13 +42,15 @@ def gf3(p0, x):
 #define log likelihood, the thing we want to maximise
 def lnlike(p0, x, y, mets = None):
     # get model for these parameters:
-    npeaks = int((len(p0)-3)/2)
+
     ymod = 0
     if mets == None:
+        npeaks = int((len(p0)-3)/2)
         for i in range(npeaks):
             p1 = [p0[i * 2], p0[i * 2 + 1], p0[-3], p0[-2], p0[-1]]
             ymod += gf3(p1,x)
     else:
+        npeaks = int((len(p0)-1)/2)
         for i in range(npeaks):
             p1 = [p0[i * 2], p0[i * 2 + 1], p0[-1], mets[1], mets[2]]
             ymod += gf3(p1,x)
@@ -154,33 +156,48 @@ def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True):
             p0.append(met)
         result = op.minimize(nll, p0, bounds=bnds, args=(x, y))
         p1 = result["x"]
+        p1cov = result["hess_inv"].todense()
+
         for i in range(nopeaks):
             p2 = [p1[i * 2], p1[i * 2 + 1], p1[-3], p1[-2], p1[-1]]
-            ymod += gf3(p2,x)        
+            ymod += gf3(p2,x)
+            plt.plot(x,gf3(p2, x))
+        
             yiel = pyield(p2[0],p2[2],p2[3],p2[4])
             yieldarr.append(yiel)
+
+            yielerr = yerr(yiel,p2[0],p2[2],p2[3],p2[4], shrinkcov(p1cov, i, rbfix)) 
+            yerrarr.append(yielerr)
 
     else:
         bnds.append(metabnd[0])
         p0.append(mets[0])
         result = op.minimize(nll, p0, bounds=bnds, args=(x,y, mets))
         p1 = result["x"]
+        p1cov = result["hess_inv"].todense()
+        p1 = np.concatenate((p1, np.array([mets[1], mets[2]])), axis = None) 
+        p1cov = zerorb(p1cov)       
+
         for i in range(nopeaks):
-            p2 = [p1[i * 2], p1[i * 2 + 1], p1[-1], mets[1], mets[2]]
+            p2 = [p1[i * 2], p1[i * 2 + 1], p1[-3], mets[1], mets[2]]
             ymod += gf3(p2,x)
+            plt.plot(x,gf3(p2, x) )
 
             yiel = pyield(p2[0],p2[2],p2[3],p2[4])
-            yieldarr.append(yiel) 
+            yieldarr.append(yiel)
+
+            yielerr = yerr(yiel,p2[0],p2[2],p2[3],p2[4], shrinkcov(p1cov, i, rbfix)) 
+            yerrarr.append(yielerr)
+
+       
 
 
-    p1cov = result["hess_inv"].todense()
-
-    print('yield = ', yieldarr, '\nsum = )', np.sum(y))
-    plt.plot(x,y)
-    plt.plot(x,ymod)
+    #print('yield = ', yieldarr, ' +- ', yerrarr,)
+    plt.plot(x,y, 'b')
+    plt.plot(x,ymod, 'r', alpha = 0.7,)
     plt.show()
 
-    return(p1, ymod, p1cov)
+    return(ymod, p1, p1cov, yieldarr, yerrarr)
     
 def yerr(Y,A,s,r,b,cov):
     
@@ -195,9 +212,33 @@ def yerr(Y,A,s,r,b,cov):
     vrA, vrm, vrs,vrr, vrb = cov[3]
     vbA, vbm, vbs,vbr, vbb = cov[4]
     
+    #print(cov)
+
     vY = (dYdA**2 * vAA) + (dYds**2 * vss) + (dYdr**2 * vrr) + (dYdb**2 * vbb) + (2 * dYdA * dYds * vAs) + (2 * dYdA * dYdr * vAr) + (2 * dYdA * dYdb * vAb) + (2 * dYds * dYdr * vsr) + (2 * dYds * dYdb * vsb) + (2 * dYdr * dYdb * vrb)
-    return(vY)
+    return(np.sqrt(vY))
 
 
-#def shrinkcov(cov, i):
+def shrinkcov(cov,i, fixrb):
+    #print(cov)
+    deletelist = []
+    for j,row in enumerate(cov):
+        if j != 2*i:
+            if j != 2*i +1:
+                if not np.array_equal(row, cov[-1]):
+                    if not np.array_equal(row, cov[-2]):
+                        if not np.array_equal(row, cov[-3]):
+                            deletelist.append(j)
+
+
+    cov = np.delete(cov,deletelist, axis = 0)
+    cov = np.delete(cov,deletelist, axis = 1)
+    #print('\n', cov)
+    return(cov)
         
+
+def zerorb(cov):
+    zeros = np.zeros(len(cov) * 2).reshape(2,len(cov))
+    zeros2 = np.zeros((len(cov)+2) * 2).reshape(len(cov) + 2,2)
+    cov2 = np.concatenate((cov, zeros), axis = 0)
+    cov3 = np.concatenate((cov2, zeros2), axis = 1)
+    return(cov3)

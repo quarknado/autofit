@@ -103,6 +103,47 @@ def spectrum_plotter(x, y):
 
     return fig
 
+def printfit(fit, x, y):
+    ymod, p1, p1cov, yieldarr, yerrarr = fit[0], fit[1], fit[2], fit[3], fit[4]
+    sig, r, beta = p1[-3], p1[-2], p1[-1]
+        
+    nopeaks = int((len(p1) - 3)/2)
+    chi2 = np.sum((y - ymod)**2/y)
+    if p1cov[-1][-1] == 0:
+        ndof = len(y) - len(p1) + 2
+    else:
+        ndof = len(y) - len(p1)
+    
+    print('Fit complete. Fitted channels ', min(x), ' to ', max(x), ', with ', nopeaks, ' peak(s).') 
+    print('Width = ', paramprint(sig, np.sqrt(p1cov[-3][-3])), '\nR = ', paramprint(r, np.sqrt(p1cov[-2][-2])), '\nBeta = ', paramprint(beta, np.sqrt(p1cov[-1][-1])), '\nReduced chi-squared = ', chi2/ndof) 
 
+
+    print('Positions and yields:')
+    
+    for i in range(nopeaks):
+        Y = yieldarr[i]
+        sY = yerrarr[i]
+        pos = p1[2*i + 1]
+        spos = np.sqrt(p1cov[2*i + 1][2*i + 1])
+        print('[' + str(i+1) + '] ' + paramprint(pos, spos) + ', ' + paramprint(Y, sY))
+        
+    
+def paramprint(param, error):
+
+    try:
+        errormag =  int(np.floor(np.log10(error)))
+    except OverflowError: #for errors of zero    
+        errormag = 0
+
+    if errormag > -1:
+        param = int(np.around(param))
+        error = int(np.around(error))
+    else:
+        param = np.around(param, -errormag)
+        error = np.around(error, -errormag)
+
+    
+    printout = str(param) + ' +- ' + str(error)
+    return(printout)
 
 

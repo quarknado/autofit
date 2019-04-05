@@ -90,7 +90,6 @@ for x2,y in peak_regions:
 '''
 
 peak_positions, region_positions = fit.peak_finder(peak_regions, width, FWHM)
-print(region_positions)
 
 
 
@@ -103,10 +102,17 @@ plt.show()
 
 template, template_pos = fit.template_finder(peak_regions, peak_positions, region_positions,fig)
 
-print(template_pos)
 
-print(fit.fit(template[0], template[1], template_pos, width, FWHM, rbfix = False))
+template_fit = fit.fit(template[0], template[1], template_pos, width, FWHM, rbfix = False)
+ad.printfit(template_fit, template[0], template[1])
 
+rfix, betafix = template_fit[1][-2],template_fit[1][-1]
+
+for i, region in enumerate(peak_regions):
+    xreg = region[0]
+    yreg = region[1]    
+    f = fit.fit(xreg, yreg, region_positions[i], width, FWHM, r = rfix, beta = betafix)
+    ad.printfit(f, xreg, yreg)
 
 
 
