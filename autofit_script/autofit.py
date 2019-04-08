@@ -107,15 +107,44 @@ template_fit = fit.fit(template[0], template[1], template_pos, width, FWHM, rbfi
 ad.printfit(template_fit, template[0], template[1])
 
 rfix, betafix = template_fit[1][-2],template_fit[1][-1]
-
+fitlist = []
 for i, region in enumerate(peak_regions):
     xreg = region[0]
     yreg = region[1]    
-    f = fit.fit(xreg, yreg, region_positions[i], width, FWHM, r = rfix, beta = betafix)
-    ad.printfit(f, xreg, yreg)
+    ft = fit.fit(xreg, yreg, region_positions[i], width, FWHM, r = rfix, beta = betafix)
+    ad.printfit(ft, xreg, yreg)
+    fitlist.append(ft)
 
+'''
+##########################################Plot Fits and Save######################
+'''
 
+ysub = yclip
 
+fitplot = plt.figure(figsize = (15,7))
+a = fitplot.add_subplot(111)
+a.plot(x, yinit, color = 'xkcd:grey')
+ofilename = str(f[:-4]) + '_fit.txt'
+file = open(ofilename, 'w+')
+topline = 'POSITION sPOSITION AREA sAREA WIDTH sWIDTH R BETA\n'
+file.write(topline)
+
+for fit in fitlist:
+    a.plot(fit[-2], fit[0])
+    j = 0
+    ix = np.intersect1d(x, fit[-2], return_indices = True)[1]
+    for i in ix:
+        ysub[i] = ysub[i] - fit[0][j]
+        j = j + 1
+
+    for i, peak in enumerate(fit[3]):
+        line = str(fit[1][2 * i + 1])  + ' ' + str(np.sqrt(fit[2][2 * i + 1][2 * i + 1])) + ' ' + str(peak) + ' ' + str(fit[4][i]) + ' ' + str(fit[1][-3]) + ' ' + str(np.sqrt(fit[2][-3][-3])) + ' ' + str(fit[1][-2]) + ' ' + str(fit[1][-1]) + '\n'
+        file.write(line)
+
+file.close() 
+
+a.plot(x, ysub)
+plt.show()
 
 
 

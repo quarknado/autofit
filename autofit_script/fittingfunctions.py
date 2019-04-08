@@ -197,7 +197,7 @@ def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True):
     plt.plot(x,ymod, 'r', alpha = 0.7,)
     plt.show()
 
-    return(ymod, p1, p1cov, yieldarr, yerrarr)
+    return(ymod, p1, p1cov, yieldarr, yerrarr, x, y)
     
 def yerr(Y,A,s,r,b,cov):
     
