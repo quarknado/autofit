@@ -116,8 +116,8 @@ def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True):
 
     #default bounds for A and mu
     #A can't be less than 0 (yay the upside down peaks that you sometimes get in gf3 are no more)
-    #mu unbounded - can be anywhere on the spectrum
-    bnd = ((0.,None), (None,None), )
+    #the peak should be on the bit of spectrum that you're fitting, so mu bounded with x
+    bnd = ((0.,None), (min(x),max(x)), )
     #bounds for metaparameters sigma, r, and beta (they are 'meta' because they should remain constant across peaks locally)
     #set sigma bound at the resolution of the detector - it's about 4 channels for Munich using the binning that I am
     #This can change though. I've set the upper bound to the FWHM input earlier just so it doesn't try to fit the background
@@ -149,6 +149,9 @@ def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True):
     nopeaks = len(muarr)
     ymod = 0
 
+    fitplot = plt.figure()
+    fitax = fitplot.add_subplot(111)
+
     if rbfix == False:
         for bnd in metabnd:
             bnds.append(bnd)
@@ -161,7 +164,7 @@ def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True):
         for i in range(nopeaks):
             p2 = [p1[i * 2], p1[i * 2 + 1], p1[-3], p1[-2], p1[-1]]
             ymod += gf3(p2,x)
-            plt.plot(x,gf3(p2, x))
+            fitax.plot(x,gf3(p2, x))
         
             yiel = pyield(p2[0],p2[2],p2[3],p2[4])
             yieldarr.append(yiel)
@@ -176,12 +179,14 @@ def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True):
         p1 = result["x"]
         p1cov = result["hess_inv"].todense()
         p1 = np.concatenate((p1, np.array([mets[1], mets[2]])), axis = None) 
-        p1cov = zerorb(p1cov)       
+        p1cov = zerorb(p1cov)
+
+       
 
         for i in range(nopeaks):
             p2 = [p1[i * 2], p1[i * 2 + 1], p1[-3], mets[1], mets[2]]
             ymod += gf3(p2,x)
-            plt.plot(x,gf3(p2, x) )
+            fitax.plot(x,gf3(p2, x) )
 
             yiel = pyield(p2[0],p2[2],p2[3],p2[4])
             yieldarr.append(yiel)
@@ -193,11 +198,10 @@ def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True):
 
 
     #print('yield = ', yieldarr, ' +- ', yerrarr,)
-    plt.plot(x,y, 'b')
-    plt.plot(x,ymod, 'r', alpha = 0.7,)
-    plt.show()
+    fitax.plot(x,y, 'b')
+    fitax.plot(x,ymod, 'r', alpha = 0.7,)
 
-    return(ymod, p1, p1cov, yieldarr, yerrarr, x, y)
+    return(ymod, p1, p1cov, yieldarr, yerrarr, fitplot, x, y)
     
 def yerr(Y,A,s,r,b,cov):
     

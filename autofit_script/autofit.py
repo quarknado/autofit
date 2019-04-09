@@ -113,6 +113,7 @@ for i, region in enumerate(peak_regions):
     yreg = region[1]    
     ft = fit.fit(xreg, yreg, region_positions[i], width, FWHM, r = rfix, beta = betafix)
     ad.printfit(ft, xreg, yreg)
+
     fitlist.append(ft)
 
 '''

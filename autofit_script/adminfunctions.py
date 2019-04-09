@@ -126,7 +126,10 @@ def printfit(fit, x, y):
         pos = p1[2*i + 1]
         spos = np.sqrt(p1cov[2*i + 1][2*i + 1])
         print('[' + str(i+1) + '] ' + paramprint(pos, spos) + ', ' + paramprint(Y, sY))
-        
+    
+    fit[5].show()
+    input('Press any key to continue')
+    plt.close(fit[5])    
     
 def paramprint(param, error):
 
