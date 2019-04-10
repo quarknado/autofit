@@ -7,6 +7,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 def file_reader(handle):
+    '''
+    Reads a file given a handle. The types of files that it reads are 2 column data - histograms with slightly weird binning so you can't just use 1 column and then 1,2,3,4, etc for the bin data.
+    I've done it so it can read things that are comma separated and space separated. Again it's a bit weird because it's specific to things created with a 'dump' function that I have for converting
+    ROOT histograms to comma separated text files, and a function in RadWare (https://radware.phy.ornl.gov/) (https://web.archive.org/web/20180612114401/https://radware.phy.ornl.gov/) which converts from 
+    .spe files used in RadWare to ascii .asc text files. Thus, this function might need to be tweaked if not being used for these specific formats.
+    '''
     
     print('reading ', handle)
     
@@ -14,17 +20,18 @@ def file_reader(handle):
     xvals=[];ymeas=[]
     
     #need this conditional because the asciis are comma separated and txts are space separated 
-    if handle[-1] == 'c':
+    if handle[-1] == 'c': #for .asc extension
         #this bit reads in the files
         while True:
             line = infile.readline()
             if not line: break
         
             items = line.split()
-            xvals.append(float(items[0][:-1]))
+            #one column is x, one is y
+            xvals.append(float(items[0][:-1]))#the -1 to get rid of the comma at the end
             ymeas.append(float(items[1]))
 
-    else:
+    else: #for 2 column space separated text files
         while True:
             line = infile.readline()
             if not line: break
@@ -39,7 +46,7 @@ def file_reader(handle):
     ymeas = np.array(ymeas)
     xvals = np.array(xvals)
 
-    #gets rid of the 0 channel dump
+    #gets rid of the 0 channel dump. Usually in these things the first channel contains all of the dead time counts, which are to be ignored.
     ymeas[0] = 0
 
     print('successfully read ', handle)
@@ -47,7 +54,10 @@ def file_reader(handle):
     return xvals, ymeas
 
 def y_or_n(question):
-    while True:        
+    '''
+    simple function for yes/no inputs. resistant to most typos, except if the user doesn't input anything. A simple spell, but not really that unbreakable. Convenient though.
+    '''
+    while True: #ininite loop that breaks whenever the user inputs either 'y' or 'n'
         yorn = input(question + 'y/n')
         if yorn == 'y': break
         elif yorn == 'n' : break 
@@ -91,48 +101,69 @@ def inputfileselector(fileno): #fileno is the number of files in the directory
     return int(fileselect)
 
 def openfilefromlist(fileselect, directory):
+    '''
+    given an integer fileselect, it will return the filename of the fileselect-th file in the directory. Combine with inputfileselector.
+    '''
     for roots, dirs, filenames in os.walk(directory):
         f = filenames[fileselect-1]
     return f
 
 def spectrum_plotter(x, y):
-    fig = plt.figure(figsize = (15,7))
+    '''
+    Plots a spectrum of the right size and with the right axes, so you don't end up with tiny spectra or channel ticks of '0, 500, 1000, 1500, 2000' or something equally as useless.
+    '''
+    fig = plt.figure(figsize = (15,7)) # short and wide fig size
     ax = fig.add_subplot(111)
     ax.plot(x, y)
-    ax.set_xticks(np.arange(0,max(x), 100))
+    ax.set_xticks(np.arange(0,max(x), 100)) #Labels every 100 channels
 
     return fig
 
 def printfit(fit, x, y):
+    '''
+    Prints out the fit parameters for each fit similarly to gf3(RadWare), and plots out the fit, along with the constituent peaks and original data, on one figure.
+    '''
+
+    #unpacks all the needed variables - in this case the fit (ymod), the fit parameters (p1) and covariance matrix (p1cov), the yields (yieldarr) and uncertainties (yerrarr)
     ymod, p1, p1cov, yieldarr, yerrarr = fit[0], fit[1], fit[2], fit[3], fit[4]
+    #these parameters are the same for all of the peaks so should be printed separately.
     sig, r, beta = p1[-3], p1[-2], p1[-1]
-        
+    
+    #need the number of peaks, I want to loop over all of the peaks to print their parameters.
+    #-3 is to get rid of the metaparameters, divide by 2 because it stores the amplitude and position of each peak     
     nopeaks = int((len(p1) - 3)/2)
+    #calculate chi-squared. poisson errors so sigma^2 = y
     chi2 = np.sum((y - ymod)**2/y)
+    #if parameters are fixed, the number of degrees of freedom changes: dof = number of data points - number of free parameters     
     if p1cov[-1][-1] == 0:
         ndof = len(y) - len(p1) + 2
     else:
         ndof = len(y) - len(p1)
-    
+    #Print the general parameters of the fit - the range of the fit, the number of channels, and the shape parameters that stay constant across the fit
     print('Fit complete. Fitted channels ', min(x), ' to ', max(x), ', with ', nopeaks, ' peak(s).') 
     print('Width = ', paramprint(sig, np.sqrt(p1cov[-3][-3])), '\nR = ', paramprint(r, np.sqrt(p1cov[-2][-2])), '\nBeta = ', paramprint(beta, np.sqrt(p1cov[-1][-1])), '\nReduced chi-squared = ', chi2/ndof) 
 
-
+    #now to print the positions and yields
     print('Positions and yields:')
-    
+    #loop over the number of peaks
     for i in range(nopeaks):
+        #get the right thing from each array of relevant parameters
         Y = yieldarr[i]
         sY = yerrarr[i]
         pos = p1[2*i + 1]
-        spos = np.sqrt(p1cov[2*i + 1][2*i + 1])
+        spos = np.sqrt(p1cov[2*i + 1][2*i + 1]) #errors come from the square root of the diagonals of the covariance matrix
         print('[' + str(i+1) + '] ' + paramprint(pos, spos) + ', ' + paramprint(Y, sY))
-    
+    #show the plot generated by the fitting function of the fit and constituent peaks
     fit[5].show()
+    #slightly clumsy way of not just printing everything at once - making the user input something to move it on. Annoyingly, pyplot's blocking behaviour doesn't apply in the object-oriented interface
     input('Press any key to continue')
     plt.close(fit[5])    
+
     
 def paramprint(param, error):
+    '''
 
+    '''
     try:
         errormag =  int(np.floor(np.log10(error)))
     except OverflowError: #for errors of zero    

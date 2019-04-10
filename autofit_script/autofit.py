@@ -23,7 +23,7 @@ import autosignals as sig
 directory = os.getcwd() + '/spectra'
 
 fileno = ad.listfiles(directory)
-fileselect = 1#ad.inputfileselector(fileno)
+fileselect = ad.inputfileselector(fileno)
 f = ad.openfilefromlist(fileselect, directory)
 
 x, yinit = ad.file_reader(directory + '/' + f)
@@ -36,7 +36,7 @@ spe.show()
 ###########################################Contaminant Deletion##################################################
 '''
 
-cont_del = 'y'# ad.y_or_n("Here is your spectrum. Would you like to remove any contaminants?")
+cont_del =  ad.y_or_n("Here is your spectrum. Would you like to remove any contaminants?")
 
 if cont_del == 'y':
     yclip = sig.contaminant_clipper(x,yinit)
