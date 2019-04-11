@@ -162,10 +162,10 @@ def printfit(fit, x, y):
     
 def paramprint(param, error):
     '''
-
+    This prints out a parameter with its error, rounding both to the preision of the uncertainty
     '''
     try:
-        errormag =  int(np.floor(np.log10(error)))
+        errormag =  int(np.floor(np.log10(error))) #sets the precision of the uncertainty on the error. Rounds down on the order of magnitude
     except OverflowError: #for errors of zero    
         errormag = 0
 

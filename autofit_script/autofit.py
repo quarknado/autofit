@@ -40,6 +40,8 @@ cont_del =  ad.y_or_n("Here is your spectrum. Would you like to remove any conta
 
 if cont_del == 'y':
     yclip = sig.contaminant_clipper(x,yinit)
+else:
+    yclip = yinit
 
 '''
 ##########################################Threshold set and Peak Region Detection###########################################################
