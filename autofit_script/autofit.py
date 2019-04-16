@@ -33,40 +33,54 @@ spe = ad.spectrum_plotter(x, yinit)
 spe.show()
 
 '''
+###########################################Baseline Subtraction##################################################
+'''
+
+base_flag = ad.y_or_n("Does this spectrum need baseline subtraction to fid the peaks.\nThe subtraction will not be applied to the fit. Instead, there will be a linear background applied to each fitting region.")
+
+if base_flag == 'y':
+    ybase = sig.baseline_subtraction(x,yinit)
+else:
+    ybase = yinit
+
+
+'''
 ###########################################Contaminant Deletion##################################################
 '''
 
-cont_del =  ad.y_or_n("Here is your spectrum. Would you like to remove any contaminants?")
+cont_del =  ad.y_or_n("Would you like to remove any contaminants?")
 
 if cont_del == 'y':
-    yclip = sig.contaminant_clipper(x,yinit)
+    yclipfit, yclipfind  = sig.contaminant_clipper(x,yinit,ybase)
 else:
-    yclip = yinit
+    yclipfit, yclipfind = yinit, ybase
 
 '''
 ##########################################Threshold set and Peak Region Detection###########################################################
 '''
 while True:
+    spe2 = ad.spectrum_plotter(x, yclipfind, 5)
+    spe2.show()
     FWHM = float(input('What is the approximate FWHM of your peaks in channels'))
     width = FWHM/(2 * np.sqrt(2*np.log(2)))
 
 
-    ysmooth = sig.smoothe(yclip, width)
+    ysmooth = sig.smoothe(yclipfind, width)
 
     smooth_spectrum = ad.spectrum_plotter(x, ysmooth)
     smooth_spectrum.show()
 
     thresh = float(input('what threshold would you like to constitute a peak?'))
 
-    [xthresh, ythresh] = sig.clipspectrum(x, yclip, ysmooth, thresh)
+    [xthresh, ythresh] = sig.clipspectrum(x, yclipfit, ysmooth, thresh)
     peak_regions = sig.split_spectrum(xthresh, ythresh, width)
-    sig.plotall(peak_regions, x, yclip)
+    sig.plotall(peak_regions, x, yclipfit)
 
 
     recontaminant = ad.y_or_n('Would you like to re-clip for any more contaminants?')
     
     if recontaminant == 'y':
-        yclip = sig.contaminant_clipper(x, yclip)
+        yclipfit, yclipfind  = sig.contaminant_clipper(x,yclipfit, yclipfind)
         continue
     else:
         pass
@@ -91,7 +105,7 @@ for x2,y in peak_regions:
 ###########################################Fitting##################################
 '''
 
-peak_positions, region_positions = fit.peak_finder(peak_regions, width, FWHM)
+peak_positions, region_positions = sig.peak_finder(peak_regions, width, FWHM)
 
 
 
@@ -102,7 +116,7 @@ axis.plot(x,pos, linewidth = 1)
 
 plt.show()
 
-template, template_pos = fit.template_finder(peak_regions, peak_positions, region_positions,fig)
+template, template_pos = ad.template_finder(peak_regions, peak_positions, region_positions,fig)
 
 
 template_fit = fit.fit(template[0], template[1], template_pos, width, FWHM, rbfix = False)
@@ -122,24 +136,32 @@ for i, region in enumerate(peak_regions):
 ##########################################Plot Fits and Save######################
 '''
 
-ysub = yclip
+ysub = yclipfit
 
 fitplot = plt.figure(figsize = (15,7))
 a = fitplot.add_subplot(111)
 a.plot(x, yinit, color = 'xkcd:grey')
+a.plot(x, pos, linewidth = 1
+)
 ofilename = str(f[:-4]) + '_fit.txt'
 file = open(ofilename, 'w+')
 topline = 'POSITION sPOSITION AREA sAREA WIDTH sWIDTH R BETA\n'
 file.write(topline)
 
 for fit in fitlist:
-    a.plot(fit[-2], fit[0])
+    #plot whole fit    
+    a.plot(fit[-2], fit[0], color = linewidth = 3)
+
+    for y_individual in fit[6]:
+        a.plot(fit[-2], y_individual)
+
+    #plot residuals
     j = 0
     ix = np.intersect1d(x, fit[-2], return_indices = True)[1]
     for i in ix:
         ysub[i] = ysub[i] - fit[0][j]
         j = j + 1
-
+    #save peaks to file
     for i, peak in enumerate(fit[3]):
         line = str(fit[1][2 * i + 1])  + ' ' + str(np.sqrt(fit[2][2 * i + 1][2 * i + 1])) + ' ' + str(peak) + ' ' + str(fit[4][i]) + ' ' + str(fit[1][-3]) + ' ' + str(np.sqrt(fit[2][-3][-3])) + ' ' + str(fit[1][-2]) + ' ' + str(fit[1][-1]) + '\n'
         file.write(line)

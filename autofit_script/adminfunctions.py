@@ -47,7 +47,8 @@ def file_reader(handle):
     xvals = np.array(xvals)
 
     #gets rid of the 0 channel dump. Usually in these things the first channel contains all of the dead time counts, which are to be ignored.
-    ymeas[0] = 0
+    ymeas = np.delete(ymeas, [0])
+    xvals = np.delete(xvals, [0])
 
     print('successfully read ', handle)
 
@@ -108,16 +109,48 @@ def openfilefromlist(fileselect, directory):
         f = filenames[fileselect-1]
     return f
 
-def spectrum_plotter(x, y):
+def spectrum_plotter(x, y, ticks = 100):
     '''
     Plots a spectrum of the right size and with the right axes, so you don't end up with tiny spectra or channel ticks of '0, 500, 1000, 1500, 2000' or something equally as useless.
     '''
     fig = plt.figure(figsize = (15,7)) # short and wide fig size
     ax = fig.add_subplot(111)
     ax.plot(x, y)
-    ax.set_xticks(np.arange(0,max(x), 100)) #Labels every 100 channels
+    ax.set_xticks(np.arange(0,max(x), ticks)) #Labels every 100 channels
 
     return fig
+
+def template_finder(peak_regions, peak_positions, reg_pos, peaks_figure):
+    '''
+    Function for getting the user to select a template region from a set of peak regions. specifically it will ask for the best peak, and then it will fit the region with that best peak in it
+    '''
+
+    #print out all of the peak positions, assigning them a number
+    for i,p in enumerate(peak_positions):
+        print( '[' + str(i) + ']: ' + str(p))
+
+    #define this - will be the number assigned to the peak which will be selected as the template
+    #or none if it is not a valid number
+    template_select = None
+
+    while template_select == None:
+    
+        try: #this try block will try and cast the user's input to an int, will keep pestering the user if they don't input one
+            peaks_figure.show()
+            template_select = int(input('Which peak is the most suitable as a template to fix parameters to The region containing it will be what is fitted.'))
+            i = 0
+            for x2, y in peak_regions:
+                if len(np.intersect1d(peak_positions[template_select], x2)) == 1: #if the peak position is in the peak region, it selects that region
+                    template = [x2, y]
+                    template_pos = reg_pos[i] #returns which region the teplate is
+                i = i + 1
+        except:
+            template_select = None #resets the loop
+
+    plt.plot(template[0], template[1])
+    plt.show()
+
+    return template, template_pos
 
 def printfit(fit, x, y):
     '''
@@ -166,13 +199,13 @@ def paramprint(param, error):
     '''
     try:
         errormag =  int(np.floor(np.log10(error))) #sets the precision of the uncertainty on the error. Rounds down on the order of magnitude
-    except OverflowError: #for errors of zero    
+    except: #for errors of zero    
         errormag = 0
 
-    if errormag > -1:
+    if errormag > -1: #round to the error if there's a decimal point
         param = int(np.around(param))
         error = int(np.around(error))
-    else:
+    else: #round to the nearest integer if the error is greater than 1
         param = np.around(param, -errormag)
         error = np.around(error, -errormag)
 

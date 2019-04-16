@@ -2,13 +2,9 @@
 ## Fitting functions for automatic fitting of transfer reaction spectra
 ## Ben Cropper 2019
 
-import scipy as sp
 import numpy as np
-import pylab as pl
-from scipy.signal import find_peaks_cwt, gaussian
+from scipy.signal import find_peaks_cwt
 from scipy.special import erfc
-import glob
-import pandas as pd
 import matplotlib.pyplot as plt
 import scipy.optimize as op
 
@@ -43,63 +39,36 @@ def gf3(p0, x):
 def lnlike(p0, x, y, mets = None):
     # get model for these parameters:
 
+    #need to build up a model from multiple peaks in p0
     ymod = 0
-    if mets == None:
+    if mets == None: #in this case, all parameters should be fit, including the shape parameters
+        #p0 goes amplitude, position, amplitude, ......, position, width, r, beta
+        # so the number of peaks is the length of p0, -3 for the shape parameters, /2 for the 2 extra parameters for each peak.
         npeaks = int((len(p0)-3)/2)
         for i in range(npeaks):
+            #add each peak in turn 
+            #    AMPLITUDE   POSITION       WIDTH   R       BETA  
             p1 = [p0[i * 2], p0[i * 2 + 1], p0[-3], p0[-2], p0[-1]]
+            #add the function of these parameters            
             ymod += gf3(p1,x)
     else:
+        #if r and beta fixed, there's 2 fewer parameters
         npeaks = int((len(p0)-1)/2)
         for i in range(npeaks):
+            #here r and beta are from the meta parameters
             p1 = [p0[i * 2], p0[i * 2 + 1], p0[-1], mets[1], mets[2]]
             ymod += gf3(p1,x)
 
-    # Poisson loglikelihood:
+    # Poisson loglikelihood for the model compared to the data:
     ll = np.sum(ymod[np.where(y!=0)]*np.log(y[np.where(y!=0)])) - np.sum(y) - np.sum(ymod[np.where(ymod!=0)]*np.log(ymod[np.where(ymod!=0)]) - ymod[np.where(ymod!=0)])
     return ll
 
 
-def template_finder(peak_regions, peak_positions, reg_pos, peaks_figure):
 
-    for i,p in enumerate(peak_positions):
-        print( '[' + str(i) + ']: ' + str(p))
-
-    template_select = None
-
-    while template_select == None:
-    
-        try:
-            peaks_figure.show()
-            template_select = int(input('Which peak is the most suitable as a template to fix parameters to The region containing it will be what is fitted.'))
-            i = 0
-            for x2, y in peak_regions:
-                if len(np.intersect1d(peak_positions[template_select], x2)) == 1:
-                    template = [x2, y]
-                    template_pos = reg_pos[i]
-                i = i + 1
-        except:
-            template_select = None
-
-    plt.plot(template[0], template[1])
-    plt.show()
-
-    return template, template_pos
-
-def peak_finder(peak_regions, w, fwhm):
-    regions_positions = []
-    peak_positions = []
-    for x2, y in peak_regions:
-        ys = sig.smoothe(y, w/4, length = len(y))
-    
-        reg_positions = find_peaks_cwt(ys, widths = np.arange( w ,fwhm))
-        peak_positions += (min(x2) + find_peaks_cwt(ys, widths = np.arange( w ,fwhm))).tolist()
-        regions_positions.append(min(x2) + reg_positions)
-    return peak_positions, regions_positions
-
-nll = lambda *args: -lnlike(*args)
+nll = lambda *args: -lnlike(*args) #lambda function just returning -log likelihood
 
 def pyield(A, s, r, b):
+
     part1 = s * np.sqrt(2 * np.pi) * A * (1 - r/100)
     part2 = 2 * A * r * b/100 * np.exp(-(s**2)/(2 * b**2))
     
@@ -151,6 +120,7 @@ def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True):
 
     fitplot = plt.figure()
     fitax = fitplot.add_subplot(111)
+    individual_peaks = []
 
     if rbfix == False:
         for bnd in metabnd:
@@ -160,12 +130,14 @@ def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True):
         result = op.minimize(nll, p0, bounds=bnds, args=(x, y))
         p1 = result["x"]
         p1cov = result["hess_inv"].todense()
-
+        
         for i in range(nopeaks):
             p2 = [p1[i * 2], p1[i * 2 + 1], p1[-3], p1[-2], p1[-1]]
-            ymod += gf3(p2,x)
-            fitax.plot(x,gf3(p2, x))
-        
+            thispeak = gf3(p2,x)            
+            ymod += thispeak
+            fitax.plot(x,thispeak)
+            individual_peaks.append(thispeak)
+       
             yiel = pyield(p2[0],p2[2],p2[3],p2[4])
             yieldarr.append(yiel)
 
@@ -185,8 +157,10 @@ def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True):
 
         for i in range(nopeaks):
             p2 = [p1[i * 2], p1[i * 2 + 1], p1[-3], mets[1], mets[2]]
-            ymod += gf3(p2,x)
-            fitax.plot(x,gf3(p2, x) )
+            thispeak = gf3(p2,x)            
+            ymod += thispeak
+            fitax.plot(x,thispeak)
+            individual_peaks.append(thispeak)
 
             yiel = pyield(p2[0],p2[2],p2[3],p2[4])
             yieldarr.append(yiel)
@@ -201,7 +175,7 @@ def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True):
     fitax.plot(x,y, 'b')
     fitax.plot(x,ymod, 'r', alpha = 0.7,)
 
-    return(ymod, p1, p1cov, yieldarr, yerrarr, fitplot, x, y)
+    return(ymod, p1, p1cov, yieldarr, yerrarr, fitplot, individual_peaks, x, y)
     
 def yerr(Y,A,s,r,b,cov):
     
