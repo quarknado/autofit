@@ -202,6 +202,10 @@ def paramprint(param, error):
     except: #for errors of zero    
         errormag = 0
 
+    if np.isnan(error):
+        printout = str(param) + ' +- ' + str(error)
+        return(printout)
+
     if errormag > -1: #round to the error if there's a decimal point
         param = int(np.around(param))
         error = int(np.around(error))
