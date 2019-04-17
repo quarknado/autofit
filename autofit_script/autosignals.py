@@ -45,7 +45,7 @@ def baseline_subtraction(x,y):
 
     min_y_list = y[min_indices]
 
-    interp_function = sp.interpolate.interp1d(min_x_list, min_y_list, kind = 'cubic', fill_value = 'extrapolate')    
+    interp_function = sp.interpolate.interp1d(min_x_list, min_y_list, kind = 'linear', fill_value = 'extrapolate')    
 
     plt.plot(x,y)
     plt.plot(x, interp_function(x))

@@ -150,7 +150,7 @@ file.write(topline)
 
 for fit in fitlist:
     #plot whole fit    
-    a.plot(fit[-2], fit[0], color = linewidth = 3)
+    a.plot(fit[-2], fit[0], linewidth = 3)
 
     for y_individual in fit[6]:
         a.plot(fit[-2], y_individual)
