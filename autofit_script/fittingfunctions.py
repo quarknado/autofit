@@ -36,15 +36,21 @@ def gf3(p0, x):
     return ymod
 
 #define log likelihood, the thing we want to maximise
-def lnlike(p0, x, y, mets = None):
-    # get model for these parameters:
+def lnlike(p0, x, y, background, mets = None):
+    n_end = 1    
+    if background:
+        n_end = n_end + 2
+    if mets == None:
+        n_end = n_end + 2
 
+    # get model for these parameters:
+    
     #need to build up a model from multiple peaks in p0
     ymod = 0
     if mets == None: #in this case, all parameters should be fit, including the shape parameters
         #p0 goes amplitude, position, amplitude, ......, position, width, r, beta
         # so the number of peaks is the length of p0, -3 for the shape parameters, /2 for the 2 extra parameters for each peak.
-        npeaks = int((len(p0)-3)/2)
+        npeaks = int((len(p0)- n_end)/2)
         for i in range(npeaks):
             #add each peak in turn 
             #    AMPLITUDE   POSITION       WIDTH   R       BETA  
@@ -53,11 +59,14 @@ def lnlike(p0, x, y, mets = None):
             ymod += gf3(p1,x)
     else:
         #if r and beta fixed, there's 2 fewer parameters
-        npeaks = int((len(p0)-1)/2)
+        npeaks = int((len(p0)-n_end)/2)
         for i in range(npeaks):
             #here r and beta are from the meta parameters
             p1 = [p0[i * 2], p0[i * 2 + 1], p0[-1], mets[1], mets[2]]
             ymod += gf3(p1,x)
+    
+    if background:
+        ymod += p0[-n_end] * x + p0[-n_end + 1]
 
     # Poisson loglikelihood for the model compared to the data:
     ll = np.sum(ymod[np.where(y!=0)]*np.log(y[np.where(y!=0)])) - np.sum(y) - np.sum(ymod[np.where(ymod!=0)]*np.log(ymod[np.where(ymod!=0)]) - ymod[np.where(ymod!=0)])
@@ -74,7 +83,7 @@ def pyield(A, s, r, b):
     
     return part1 + part2
 
-def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True):
+def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True, background = False):
     
     if beta == None: beta = FWHM
     
@@ -122,53 +131,47 @@ def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True):
     fitax = fitplot.add_subplot(111)
     individual_peaks = []
 
-    if rbfix == False:
+    if background:
+        bg_bnd = ((None, None), (0., max(y)))
+
+        for bnd in bg_bnd:
+            bnds.append(bnd)
+        
+        for i in range(2): p0.append(0) #default 0 background
+
+    if not rbfix:
         for bnd in metabnd:
             bnds.append(bnd)
         for met in mets:
             p0.append(met)
-        result = op.minimize(nll, p0, bounds=bnds, args=(x, y))
-        p1 = result["x"]
-        p1cov = result["hess_inv"].todense()
-        
-        for i in range(nopeaks):
-            p2 = [p1[i * 2], p1[i * 2 + 1], p1[-3], p1[-2], p1[-1]]
-            thispeak = gf3(p2,x)            
-            ymod += thispeak
-            fitax.plot(x,thispeak)
-            individual_peaks.append(thispeak)
-       
-            yiel = pyield(p2[0],p2[2],p2[3],p2[4])
-            yieldarr.append(yiel)
-
-            yielerr = yerr(yiel,p2[0],p2[2],p2[3],p2[4], shrinkcov(p1cov, i, rbfix)) 
-            yerrarr.append(yielerr)
+        result = op.minimize(nll, p0, bounds=bnds, args=(x, y, background))
 
     else:
         bnds.append(metabnd[0])
         p0.append(mets[0])
-        result = op.minimize(nll, p0, bounds=bnds, args=(x,y, mets))
-        p1 = result["x"]
-        p1cov = result["hess_inv"].todense()
-        p1 = np.concatenate((p1, np.array([mets[1], mets[2]])), axis = None) 
-        p1cov = zerorb(p1cov)
+        result = op.minimize(nll, p0, bounds=bnds, args=(x,y, background, mets))
+        
+    p1 = result["x"]    
+    p1cov = result["hess_inv"].todense()
 
-       
+    p1 = p1_fixer(p1, rbfix, background, mets)
+    p1cov = cov_fixer(p1cov, rbfix, background)            
 
-        for i in range(nopeaks):
-            p2 = [p1[i * 2], p1[i * 2 + 1], p1[-3], mets[1], mets[2]]
-            thispeak = gf3(p2,x)            
-            ymod += thispeak
-            fitax.plot(x,thispeak)
-            individual_peaks.append(thispeak)
+    for i in range(nopeaks):
+        p2 = [p1[i * 2], p1[i * 2 + 1], p1[-3], p1[-2], p1[-1]]
+        thispeak = gf3(p2,x)            
+        ymod += thispeak
+        fitax.plot(x,thispeak)
+        individual_peaks.append(thispeak)
 
-            yiel = pyield(p2[0],p2[2],p2[3],p2[4])
-            yieldarr.append(yiel)
+        yiel = pyield(p2[0],p2[2],p2[3],p2[4])
+        yieldarr.append(yiel)
 
-            yielerr = yerr(yiel,p2[0],p2[2],p2[3],p2[4], shrinkcov(p1cov, i, rbfix)) 
-            yerrarr.append(yielerr)
+        yielerr = yerr(yiel,p2[0],p2[2],p2[3],p2[4], shrinkcov(p1cov, i)) 
+        yerrarr.append(yielerr)
 
-       
+    ymod += p1[-5] * x + p1[-4]
+    fitax.plot(x,p1[-5] * x + p1[-4])       
 
 
     #print('yield = ', yieldarr, ' +- ', yerrarr,)
@@ -182,13 +185,16 @@ def yerr(Y,A,s,r,b,cov):
     dYdA = Y/A
     dYdr = (Y - s * np.sqrt(2 * np.pi) * A)/r
     dYds = np.sqrt(2 * np.pi) * A * (1 - r/100) - (2 * A * r * s * np.exp(-s**2/(2 * b**2)))/ (100 * b)
-    dYdb = (2/100) * A * r *  np.exp(-s**2/(2 * b**2)) * (1 + s**2/b**2)
-    
-    vAA, vAm, vAs,vAr, vAb = cov[0]
-    vmA, vmm, vms,vmr, vbb = cov[1]
-    vsA, vsm, vss,vsr, vsb = cov[2]
-    vrA, vrm, vrs,vrr, vrb = cov[3]
-    vbA, vbm, vbs,vbr, vbb = cov[4]
+    dYdb = (2/100) * A * r *  np.exp(-s**2/(2 * b**2)) * (1 + s**2/b**2) 
+
+
+    vAA, vAm, vAg, vao, vAs, vAr, vAb = cov[0]
+    vmA, vmm, vmg, vmo, vms, vmr, vbb = cov[1]
+    vgA, vgm, vgg, vgo, vgs, vgr, vgb = cov[2]   
+    voA, vom, vog, voo, vos, vor, vob = cov[3]    
+    vsA, vsm, vsg, vso, vss, vsr, vsb = cov[4]
+    vrA, vrm, vrg, vro, vrs, vrr, vrb = cov[5]
+    vbA, vbm, vbg, vbo, vbs, vbr, vbb = cov[6]
     
     #print(cov)
 
@@ -196,7 +202,7 @@ def yerr(Y,A,s,r,b,cov):
     return(np.sqrt(vY))
 
 
-def shrinkcov(cov,i, fixrb):
+def shrinkcov(cov,i):
     #print(cov)
     deletelist = []
     for j,row in enumerate(cov):
@@ -205,7 +211,9 @@ def shrinkcov(cov,i, fixrb):
                 if not np.array_equal(row, cov[-1]):
                     if not np.array_equal(row, cov[-2]):
                         if not np.array_equal(row, cov[-3]):
-                            deletelist.append(j)
+                            if not np.array_equal(row, cov[-4]):
+                                if not np.array_equal(row, cov[-5]):
+                                    deletelist.append(j)
 
 
     cov = np.delete(cov,deletelist, axis = 0)
@@ -213,8 +221,80 @@ def shrinkcov(cov,i, fixrb):
     #print('\n', cov)
     return(cov)
         
+def p1_fixer(p1, rbfix, background, mets):
+    #want to 'fix' p1 so it reads amp, pos, amp, pos,....,offset, grad, sig, r, beta
 
-def zerorb(cov):
+    #how many parameters are currently on the 'end' of p1?
+    #p1 is currently the list of parameters that have been fit
+    n_end = 1    
+    if background: n_end = n_end + 2
+    if not rbfix: n_end = n_end + 2
+    
+    #by default just the width has to be there, let's get it. will be -3 if rb not fixed, -1 if they are
+    if rbfix:
+        sig, r, beta = [p1[-1], mets[1], mets[2]]
+    else:
+        sig, r, beta = [p1[-3], p1[-2], p1[-1]]
+
+    if background:
+        grad, off = [p1[-n_end], p1[-n_end + 1]]
+    else:
+        grad, off = [0, 0]
+
+    p1 = p1[0:-n_end]
+
+    p1 = np.append(p1, [grad, off, sig, r, beta])
+
+    return(p1)
+
+def cov_fixer(cov, rbfix, background):    
+    if rbfix:
+        cov = add2(cov) 
+        if not background:
+            cov = add2(cov)
+    else:
+        if not background:
+            rcov = cov[-2]
+            bcov = cov[-1]
+
+            rcovlong = np.insert(rcov, -2, [0.,0.])
+            bcovlong = np.insert(bcov, -2, [0.,0.])
+
+            rcovlong = np.expand_dims(rcovlong, axis = 1)
+            bcovlong = np.expand_dims(bcovlong, axis = 1)
+
+
+            rcovshort = np.delete(rcov, -1)
+            rcovshort = np.delete(rcovshort, -1)
+            bcovshort = np.delete(bcov, -1)
+            bcovshort = np.delete(bcovshort, -1)
+
+            rcovshort = np.append(rcovshort, [0, 0])
+            bcovshort = np.append(bcovshort, [0, 0])
+            
+            rcovshort = np.expand_dims(rcovshort, axis = 0)
+            bcovshort = np.expand_dims(bcovshort, axis = 0)
+            
+
+            cov = np.delete(cov,-1, axis = 0)
+            cov = np.delete(cov,-1, axis = 0)
+            cov = np.delete(cov,-1, axis = 1)
+            cov = np.delete(cov,-1, axis = 1)
+            cov = add2(cov)
+
+
+            cov = np.append(cov, rcovshort, axis = 0)
+
+            cov = np.append(cov, bcovshort, axis = 0)
+
+            cov = np.append(cov, rcovlong, axis = 1)
+            cov = np.append(cov, bcovlong, axis = 1)
+            
+        else: pass
+
+    return(cov)
+
+def add2(cov):
     zeros = np.zeros(len(cov) * 2).reshape(2,len(cov))
     zeros2 = np.zeros((len(cov)+2) * 2).reshape(len(cov) + 2,2)
     cov2 = np.concatenate((cov, zeros), axis = 0)

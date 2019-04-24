@@ -119,7 +119,7 @@ plt.show()
 template, template_pos = ad.template_finder(peak_regions, peak_positions, region_positions,fig)
 
 
-template_fit = fit.fit(template[0], template[1], template_pos, width, FWHM, rbfix = False)
+template_fit = fit.fit(template[0], template[1], template_pos, width, FWHM, rbfix = False, background = True)
 ad.printfit(template_fit, template[0], template[1])
 
 rfix, betafix = template_fit[1][-2],template_fit[1][-1]
@@ -127,7 +127,7 @@ fitlist = []
 for i, region in enumerate(peak_regions):
     xreg = region[0]
     yreg = region[1]    
-    ft = fit.fit(xreg, yreg, region_positions[i], width, FWHM, r = rfix, beta = betafix)
+    ft = fit.fit(xreg, yreg, region_positions[i], width, FWHM, r = rfix, beta = betafix, background = True)
     ad.printfit(ft, xreg, yreg)
 
     fitlist.append(ft)
