@@ -17,13 +17,34 @@ smoothlength = 200
 
 def baseline_subtraction(x,y):    
     
-    while True:    
-        try:        
-            base_split = int(input('How many pieces should the spectrum be separated into?\nThe channel with the minimum counts in each segment will be a point on a segmented linearly interpolated background.'))
-            if base_split < 0: raise ValueError
-            break
-        except ValueError:
-            print('Invalid number of sections entered')
+    print('The channel with the minimum counts in each segment will be a point on a segmented linearly interpolated background.')
+
+    min_indices, min_x_list, min_y_list, x_split_list, y_split_list = min_spectrum_split(x, y)
+
+    interp_function = sp.interpolate.interp1d(min_x_list, min_y_list, kind = 'linear', fill_value = 'extrapolate')    
+
+    plt.plot(x,y)
+    plt.plot(x, interp_function(x))
+    plt.plot(x, y - interp_function(x))
+
+    plt.show()
+
+    redo = ad.y_or_n('Would you like to reselect the boundaries?')
+    if redo == 'y':
+        return baseline_subtraction(x,y)
+    
+    return( y - interp_function(x))
+
+def min_spectrum_split(x, y, base_split = None):
+
+    if base_split == None:
+        while True:    
+            try:        
+                base_split = int(input('How many pieces should the spectrum be separated into?\n'))
+                if base_split < 0: raise ValueError
+                break
+            except ValueError:
+                print('Invalid number of sections entered')
 
     x_split_list = np.array_split(x,base_split)
     y_split_list = np.array_split(y,base_split)
@@ -43,25 +64,33 @@ def baseline_subtraction(x,y):
     min_indices = np.intersect1d(x, min_x_list, return_indices = True)[1]
     #print(min_indices)
 
-    min_y_list = y[min_indices]
+    min_y_list = y[min_indices]    
 
-    interp_function = sp.interpolate.interp1d(min_x_list, min_y_list, kind = 'linear', fill_value = 'extrapolate')    
+    x_split_list = np.split(x, min_indices)
+    y_split_list = np.split(y, min_indices)
 
-    plt.plot(x,y)
-    plt.plot(x, interp_function(x))
-    plt.plot(x, y - interp_function(x))
+    return(min_indices, min_x_list, min_y_list, x_split_list, y_split_list)
 
-    plt.show()
+def min_region_finder(xlist, ylist, no_regions):
+    len_xlist = []
+    for x in xlist:
+        len_xlist.append(len(x))
+    len_xlist = np.array(len_xlist)
+    total_length = np.sum(len_xlist)
 
-    redo = ad.y_or_n('Would you like to reselect the boundaries?')
-    if redo == 'y':
-        return baseline_subtraction(x,y)
-    
-    return( y - interp_function(x))
+    fitting_regions = []
 
-    
-
-        
+    for x, y in zip(xlist, ylist):
+        no_individual_regions = np.around((len(x)/total_length) * no_regions)
+        if no_individual_regions != 0:        
+            split = min_spectrum_split(x,y, base_split = no_individual_regions)
+        else:
+            split = [[],[],[],[x],[y]]        
+        regions_list_x = split[3]
+        regions_list_y = split[4]
+        for x_region, y_region in zip(regions_list_x, regions_list_y):
+            fitting_regions.append([x_region, y_region])
+    return(fitting_regions)
 
 def smoothe(yvals, smoothwidth, length = smoothlength):
     #need to smooth over the noise so I can more effectively grab fitting regions
@@ -190,17 +219,22 @@ def context(xval, yval, cent, window):
     return xcontext, ycontext
    
 
-def contaminant_clipper(x, yinit, ybase):
 
+def contaminant_clipper(x, yinit, ybase, split = False):
+    
     '''
     clips bits out of the spectrum after prompting the user to do so
     '''    
     yclipfit = yinit #clip things out of this yclip variable so yinit doesn't change
     yclipfind = ybase
 
+    if split:
+        xlist, ylist = [[],[]]
+        borders = [0, len(x)]
+
     while True:
         
-        #set a buffer such that it can be reinstated to the last one if the user changes their mind
+        #set a buffer such that it can be reinstated to the last one if the user changes their minddef contaminant_c_split(x, y)
         yclipfitbuffer = yclipfit
         yclipfindbuffer = yclipfind                
 
@@ -244,6 +278,7 @@ def contaminant_clipper(x, yinit, ybase):
         ynewfind = np.append(y21find, y20)
         ynewfind = np.append(ynewfind, y22find)
 
+
         #now replace the old ys with the new one
         yclipfit = ynewfit
         yclipfind = ynewfind
@@ -262,6 +297,7 @@ def contaminant_clipper(x, yinit, ybase):
             if cancel == 'n':
                 yclipfit = yinit
                 yclipfind = ybase
+                if split: xlist, ylist = [[x],[yinit]]
                 break
             if cancel == 'y':
                 yclipfit = yclipfitbuffer
@@ -269,7 +305,11 @@ def contaminant_clipper(x, yinit, ybase):
                 continue
             
         else: #all good, so can continue
-            pass
+            if split:
+                borders.append(int(max(np.intersect1d(x, x[x21], return_indices = True)[1])))
+                borders.append(int(min(np.intersect1d(x, x[x22], return_indices = True)[1])))
+            else:            
+                pass
 
         #do they want to get rid of more contaminants? continue loop if they do, don't if they don't
         moreclip = ad.y_or_n('Would you like to remove any more contaminants?')
@@ -278,6 +318,15 @@ def contaminant_clipper(x, yinit, ybase):
         else:
             break
 
+    if split:
+        borders = np.sort(borders)
+        for i, border in enumerate(borders):
+            if ((i % 2 == 0) and (i is not len(borders))):
+                ylist.append(yinit[border:borders[i+1]])
+                xlist.append(x[border:borders[i+1]])
+                
+
+        return(xlist, ylist, yclipfind)
 
     return yclipfit, yclipfind
 
@@ -295,11 +344,14 @@ def peak_finder(peak_regions, w, fwhm):
     
         #now do the cwt. the widths here are the widths of the wavelet you convolve the signal width
         #A peak which persists when you convolve the signal with wavelets of different widths will be considered a peak
-        reg_positions = find_peaks_cwt(ys, widths = np.arange( w ,fwhm))
+        reg_ix = find_peaks_cwt(ys, widths = np.arange( w ,fwhm))
+        reg_positions = x2[reg_ix]
+
         #this one finds the absolute peak positions on the spectrum and lists them.
-        peak_positions += (min(x2) + find_peaks_cwt(ys, widths = np.arange( w ,fwhm))).tolist()
+        peak_positions += reg_positions.tolist()
+      
         #this one sorts them into regions
-        regions_positions.append(min(x2) + reg_positions)
+        regions_positions.append(reg_positions)
     return peak_positions, regions_positions
 
 

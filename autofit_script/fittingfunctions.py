@@ -108,7 +108,15 @@ def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True, background = 
 
     peakparams = []
     for i, pos in enumerate(muarr):
-        p = [pos, Aarr[i]]
+        try:        
+            p = [pos, Aarr[i]]
+        except:
+            print('array of mu = ', muarr)
+            print('array of A = ', Aarr)
+            print('peak indices = ', peakix)
+            print('fit boundaries are: ', min(x), max(x))
+            print(x)
+            raise IndexError
         peakparams.append(p)
     
 
@@ -132,7 +140,7 @@ def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True, background = 
     individual_peaks = []
 
     if background:
-        bg_bnd = ((None, None), (0., max(y)))
+        bg_bnd = ((None, 0.), (0., max(y)))
 
         for bnd in bg_bnd:
             bnds.append(bnd)

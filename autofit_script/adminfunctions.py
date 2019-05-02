@@ -162,7 +162,7 @@ def printfit(fit, x, y):
     #these parameters are the same for all of the peaks so should be printed separately.
     grad, off, sig, r, beta = p1[-5], p1[-4], p1[-3], p1[-2], p1[-1]
 
-    print(p1)
+    #print(p1)
     
     #need the number of peaks, I want to loop over all of the peaks to print their parameters.
     #-3 is to get rid of the metaparameters, divide by 2 because it stores the amplitude and position of each peak     
