@@ -83,12 +83,13 @@ def pyield(A, s, r, b):
     
     return part1 + part2
 
-def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True, background = False):
+def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True, background = False, Aarr = None):
     
     if beta == None: beta = FWHM
-    
-    peakix = np.intersect1d(x, muarr, return_indices = True)[1].astype(int)
-    Aarr = np.take(y, peakix)
+
+    if Aarr == None:
+        peakix = np.intersect1d(x, muarr, return_indices = True)[1].astype(int)
+        Aarr = np.take(y, peakix)
         
 
 
@@ -107,16 +108,8 @@ def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True, background = 
 
 
     peakparams = []
-    for i, pos in enumerate(muarr):
-        try:        
-            p = [pos, Aarr[i]]
-        except:
-            print('array of mu = ', muarr)
-            print('array of A = ', Aarr)
-            print('peak indices = ', peakix)
-            print('fit boundaries are: ', min(x), max(x))
-            print(x)
-            raise IndexError
+    for i, pos in enumerate(muarr):        
+        p = [pos, Aarr[i]]
         peakparams.append(p)
     
 

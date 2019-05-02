@@ -345,10 +345,14 @@ def peak_finder(peak_regions, w, fwhm):
         #now do the cwt. the widths here are the widths of the wavelet you convolve the signal width
         #A peak which persists when you convolve the signal with wavelets of different widths will be considered a peak
         reg_ix = find_peaks_cwt(ys, widths = np.arange( w ,fwhm))
-        reg_positions = x2[reg_ix]
+        try:        
+            reg_positions = x2[reg_ix]
+            #this one finds the absolute peak positions on the spectrum and lists them.
+            peak_positions += reg_positions.tolist()
+        except IndexError:
+            reg_positions = [] 
 
-        #this one finds the absolute peak positions on the spectrum and lists them.
-        peak_positions += reg_positions.tolist()
+
       
         #this one sorts them into regions
         regions_positions.append(reg_positions)

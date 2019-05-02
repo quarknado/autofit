@@ -139,6 +139,31 @@ for i, region in enumerate(peak_regions):
     fitlist.append(ft)
 
 '''
+############################################2nd pass#############################
+'''
+muarrnew = []
+aarrnew = []
+while True:
+    oldlen = len(aarrnew)    
+    muarrnew = []
+    aarrnew = []
+
+    for ft in fitlist:
+        for i, yiel in enumerate(ft[3]):
+            if not np.isnan(ft[4][i]):
+                if yiel > 3 * ft[4][i]:
+                    muarrnew.append(ft[1][2 * i + 1])
+                    aarrnew.append(ft[1][2 * i])
+                    
+    
+    newlen = len(aarrnew)
+
+    if oldlen == newlen: break
+    fitnew = fit.fit(x, yclip, muarrnew, width, FWHM, r = rfix, beta = betafix, background = bg, Aarr = aarrnew)
+    fitlist = [fitnew]
+    ad.printfit(fitnew, x, yclip)
+
+'''
 ##########################################Plot Fits and Save######################
 '''
 
