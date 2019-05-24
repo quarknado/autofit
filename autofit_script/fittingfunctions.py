@@ -20,7 +20,7 @@ def gf3(p0, x):
     #beta is the 'skewneess' of the second skew gaussian
     #it is the decay constant of an exponential tail on the skewed gaussian
     #this exponential tail is convolved with a gaussian resolution function
-    
+
     amp, mu, sigma, r, beta = p0
     
     
@@ -46,7 +46,7 @@ def lnlike(p0, x, y, background, mets = None):
     # get model for these parameters:
     
     #need to build up a model from multiple peaks in p0
-    ymod = 0
+    ymod = np.zeros(len(y))
     if mets == None: #in this case, all parameters should be fit, including the shape parameters
         #p0 goes amplitude, position, amplitude, ......, position, width, r, beta
         # so the number of peaks is the length of p0, -3 for the shape parameters, /2 for the 2 extra parameters for each peak.
@@ -69,7 +69,12 @@ def lnlike(p0, x, y, background, mets = None):
         ymod += p0[-n_end] * x + p0[-n_end + 1]
 
     # Poisson loglikelihood for the model compared to the data:
-    ll = np.sum(ymod[np.where(y!=0)]*np.log(y[np.where(y!=0)])) - np.sum(y) - np.sum(ymod[np.where(ymod!=0)]*np.log(ymod[np.where(ymod!=0)]) - ymod[np.where(ymod!=0)])
+    try:
+        ll = np.sum(ymod[np.where(y!=0)]*np.log(y[np.where(y!=0)])) - np.sum(y) - np.sum(ymod[np.where(ymod!=0)]*np.log(ymod[np.where(ymod!=0)]) - ymod[np.where(ymod!=0)])
+    except TypeError:
+        print('ymod = ', ymod)
+        print('y = ', y)
+               
     return ll
 
 
@@ -87,11 +92,10 @@ def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True, background = 
     
     if beta == None: beta = FWHM
 
-    if Aarr == None:
+    if Aarr is None:
         peakix = np.intersect1d(x, muarr, return_indices = True)[1].astype(int)
         Aarr = np.take(y, peakix)
         
-
 
     #default bounds for A and mu
     #A can't be less than 0 (yay the upside down peaks that you sometimes get in gf3 are no more)
@@ -108,7 +112,7 @@ def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True, background = 
 
 
     peakparams = []
-    for i, pos in enumerate(muarr):        
+    for i, pos in enumerate(muarr):      
         p = [pos, Aarr[i]]
         peakparams.append(p)
     

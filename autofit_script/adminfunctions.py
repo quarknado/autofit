@@ -116,18 +116,19 @@ def spectrum_plotter(x, y, ticks = 100):
     fig = plt.figure(figsize = (15,7)) # short and wide fig size
     ax = fig.add_subplot(111)
     ax.plot(x, y)
-    ax.set_xticks(np.arange(0,max(x), ticks)) #Labels every 100 channels
+    ax.plot(x, np.zeros(len(x)))
+    #ax.set_xticks(np.arange(0,max(x), ticks)) #Labels every 100 channels
 
     return fig
 
-def template_finder(peak_regions, peak_positions, reg_pos, peaks_figure):
+def template_finder(peak_regions, peak_positions, reg_pos, fstgo, peaks_figure = None, pos = None):
     '''
     Function for getting the user to select a template region from a set of peak regions. specifically it will ask for the best peak, and then it will fit the region with that best peak in it
     '''
-
-    #print out all of the peak positions, assigning them a number
-    for i,p in enumerate(peak_positions):
-        print( '[' + str(i) + ']: ' + str(p))
+    if fstgo:
+        #print out all of the peak positions, assigning them a number
+        for i,p in enumerate(peak_positions):
+            print( '[' + str(i) + ']: ' + str(p))
 
     #define this - will be the number assigned to the peak which will be selected as the template
     #or none if it is not a valid number
@@ -136,21 +137,31 @@ def template_finder(peak_regions, peak_positions, reg_pos, peaks_figure):
     while template_select == None:
     
         try: #this try block will try and cast the user's input to an int, will keep pestering the user if they don't input one
-            peaks_figure.show()
-            template_select = int(input('Which peak is the most suitable as a template to fix parameters to The region containing it will be what is fitted.'))
-            i = 0
-            for x2, y in peak_regions:
-                if len(np.intersect1d(peak_positions[template_select], x2)) == 1: #if the peak position is in the peak region, it selects that region
-                    template = [x2, y]
-                    template_pos = reg_pos[i] #returns which region the teplate is
-                i = i + 1
+            if(fstgo):
+                peaks_figure.show()            
+                template_select = int(input('Which peak is the most suitable as a template to fix parameters to The region containing it will be what is fitted.'))
+                i = 0
+                for x2, y in peak_regions:
+                    if len(np.intersect1d(peak_positions[template_select], x2)) == 1: #if the peak position is in the peak region, it selects that region
+                        template = [x2, y]
+                        template_pos = reg_pos[i] #returns which region the teplate is
+                        peak_pos = np.intersect1d(peak_positions[template_select], x2)
+                    i = i + 1
+            else:            
+                i = 0
+                for x2, y in peak_regions:
+                    print(pos, min(x2),min(y))
+                    if len(np.intersect1d(pos, x2)) == 1: #if the peak position is in the peak region, it selects that region
+                        template = [x2, y]
+                        template_pos = reg_pos[i] #returns which region the teplate is
+                        peak_pos = np.intersect1d(pos, x2)
+                    i = i + 1
+                template_select = 'fish'
         except:
             template_select = None #resets the loop
 
-    plt.plot(template[0], template[1])
-    plt.show()
 
-    return template, template_pos
+    return template, template_pos, peak_pos
 
 def printfit(fit, x, y):
     '''
@@ -219,4 +230,7 @@ def paramprint(param, error):
     printout = str(param) + ' +- ' + str(error)
     return(printout)
 
+def find_nearest(val, arr):
+    'find element of numpy array arr which is closest to value val'
+    return (np.abs(arr - val)).argmin()
 
