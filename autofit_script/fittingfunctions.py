@@ -88,7 +88,7 @@ def pyield(A, s, r, b):
     
     return part1 + part2
 
-def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True, background = False, Aarr = None):
+def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True, background = False, Aarr = None, fig = True):
     
     if beta == None: beta = FWHM
 
@@ -132,8 +132,9 @@ def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True, background = 
     nopeaks = len(muarr)
     ymod = 0
 
-    fitplot = plt.figure()
-    fitax = fitplot.add_subplot(111)
+    if fig:
+        fitplot = plt.figure()
+        fitax = fitplot.add_subplot(111)
     individual_peaks = []
 
     if background:
@@ -166,7 +167,7 @@ def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True, background = 
         p2 = [p1[i * 2], p1[i * 2 + 1], p1[-3], p1[-2], p1[-1]]
         thispeak = gf3(p2,x)            
         ymod += thispeak
-        fitax.plot(x,thispeak)
+        if fig: fitax.plot(x,thispeak)
         individual_peaks.append(thispeak)
 
         yiel = pyield(p2[0],p2[2],p2[3],p2[4])
@@ -176,12 +177,14 @@ def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True, background = 
         yerrarr.append(yielerr)
 
     ymod += p1[-5] * x + p1[-4]
-    fitax.plot(x,p1[-5] * x + p1[-4])       
+    if fig: fitax.plot(x,p1[-5] * x + p1[-4])       
 
 
     #print('yield = ', yieldarr, ' +- ', yerrarr,)
-    fitax.plot(x,y, 'b')
-    fitax.plot(x,ymod, 'r', alpha = 0.7,)
+    if fig: fitax.plot(x,y, 'b')
+    if fig: fitax.plot(x,ymod, 'r', alpha = 0.7,)
+
+    if not fig: fitplot = None
 
     return(ymod, p1, p1cov, yieldarr, yerrarr, fitplot, individual_peaks, x, y)
     

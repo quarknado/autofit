@@ -59,8 +59,8 @@ fstgo = True
 ##########################################Threshold set and Peak Region Detection###########################################################
 '''
 fitlistlist = []
-
-for i in range(20):  
+totalnfits = 3
+for i in range(totalnfits):  
     while True:
         if fstgo:
             spe2 = ad.spectrum_plotter(x, yclip, 5)
@@ -140,7 +140,7 @@ for i in range(20):
 
 
 
-    template_fit = fit.fit(template[0], template[1], template_pos, width, FWHM, rbfix = False, background = bg)
+    template_fit = fit.fit(template[0], template[1], template_pos, width, FWHM, rbfix = False, background = bg, fig = False)
     ad.printfit(template_fit, template[0], template[1])
 
     rfix, betafix = template_fit[1][-2],template_fit[1][-1]
@@ -149,7 +149,7 @@ for i in range(20):
         xreg = region[0]
         yreg = region[1]
         if len(region_positions[i]) == 0: continue     
-        ft = fit.fit(xreg, yreg, region_positions[i], width, FWHM, r = rfix, beta = betafix, background = bg)
+        ft = fit.fit(xreg, yreg, region_positions[i], width, FWHM, r = rfix, beta = betafix, background = bg, fig = False)
         ad.printfit(ft, xreg, yreg)
 
         fitlist.append(ft)
@@ -191,7 +191,7 @@ for i in range(20):
     
 
             if len(region_positions[i]) == 0: continue     
-            ft = fit.fit(xreg, yreg, reg_pos, width, FWHM, r = rfix, beta = betafix, background = bg, Aarr = a_arr)
+            ft = fit.fit(xreg, yreg, reg_pos, width, FWHM, r = rfix, beta = betafix, background = bg, Aarr = a_arr, fig = False)
             ad.printfit(ft, xreg, yreg)
 
             fitlist.append(ft)
@@ -200,19 +200,79 @@ for i in range(20):
     fstgo = False
 
 #now want to plot pos vs yield for every peak in this list.
-print(fitlistlist)
+#print(fitlistlist)
 
-yfin = []
+afin = []
 mfin = []
+smfin = []
+nlist = []
 
-for fitlist in fitlistlist:
+for j, fitlist in enumerate(fitlistlist):
     for ft in fitlist:
         for i, yiel in enumerate(ft[3]):
             mfin.append(ft[1][2 * i + 1])
-            yfin.append(yiel)
+            afin.append(ft[1][2 * i])
+            smfin.append(np.sqrt(ft[2][2*i + 1][2*i + 1]))
+            nlist.append(j)
 
-plt.scatter(mfin, yfin, s = 3, marker = '.')
+plt.errorbar(nlist, mfin, smfin, linestyle = "")
 plt.show()
+
+poslist = []
+sposlist = []
+alist = []
+for mu, smu, a in zip(mfin, smfin, afin):
+    z = 10000
+    for pos, spos, h in zip(poslist,sposlist, alist):
+        p,sp = np.average(pos, weights = 1/np.array(spos)**2, returned = True)
+        sp = sp ** (-0.5)
+        s = np.sqrt(sp**2 + smu**2)
+        z = np.abs(mu - p)/s
+        if np.isnan(p): z = 10000
+ 
+        if z < 2:
+            pos.append(mu)
+            spos.append(smu)
+            h.append(a)
+            break
+    if z < 2: continue
+    
+    poslist.append([mu])
+    sposlist.append([smu])
+    alist.append([a])
+
+#print(poslist)
+
+for i, pos in enumerate(poslist):
+    plt.errorbar(np.full(len(pos), i), pos, sposlist[i], linestyle = "" )
+
+plt.show()
+
+
+muarrnew = []
+aarrnew = []
+#print(alist)
+for pos, a in zip(poslist, alist):
+    if len(pos) > 0.8 * totalnfits:
+        muarrnew.append(np.average(pos))
+        aarrnew.append(np.average(a))
+
+#print(muarrnew, aarrnew)
+
+
+for i, region in enumerate(peak_regions):
+    xreg = region[0]
+    yreg = region[1]
+            
+    reg_pos = muarrnew[(muarrnew > min(xreg)) & (muarrnew < max(xreg))]
+    a_arr = aarrnew[(muarrnew > min(xreg)) & (muarrnew < max(xreg))]
+    
+
+    if len(region_positions[i]) == 0: continue     
+    ft = fit.fit(xreg, yreg, reg_pos, width, FWHM, r = rfix, beta = betafix, background = bg, Aarr = a_arr)
+    ad.printfit(ft, xreg, yreg)
+
+    fitlist.append(ft)
 
 
 exit()
