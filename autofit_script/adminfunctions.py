@@ -121,7 +121,7 @@ def spectrum_plotter(x, y, ticks = 100):
 
     return fig
 
-def template_finder(peak_regions, peak_positions, reg_pos, fstgo, peaks_figure = None, pos = None):
+def template_finder(peak_regions, peak_positions, reg_pos, fstgo, peaks_figure = None, pos = None, A_arr = None):
     '''
     Function for getting the user to select a template region from a set of peak regions. specifically it will ask for the best peak, and then it will fit the region with that best peak in it
     '''
@@ -145,6 +145,9 @@ def template_finder(peak_regions, peak_positions, reg_pos, fstgo, peaks_figure =
                     if len(np.intersect1d(peak_positions[template_select], x2)) == 1: #if the peak position is in the peak region, it selects that region
                         template = [x2, y]
                         template_pos = reg_pos[i] #returns which region the teplate is
+                        if A_arr is not None:
+                            template_a = A_arr[i]
+
                         peak_pos = np.intersect1d(peak_positions[template_select], x2)
                     i = i + 1
             else:            
@@ -154,6 +157,8 @@ def template_finder(peak_regions, peak_positions, reg_pos, fstgo, peaks_figure =
                     if len(np.intersect1d(pos, x2)) == 1: #if the peak position is in the peak region, it selects that region
                         template = [x2, y]
                         template_pos = reg_pos[i] #returns which region the teplate is
+                        if A_arr is not None:
+                            template_a = A_arr[i]
                         peak_pos = np.intersect1d(pos, x2)
                     i = i + 1
                 template_select = 'fish'
@@ -161,7 +166,8 @@ def template_finder(peak_regions, peak_positions, reg_pos, fstgo, peaks_figure =
             template_select = None #resets the loop
 
 
-    return template, template_pos, peak_pos
+    if A_arr is None: return template, template_pos, peak_pos
+    else: return template, template_pos, peak_pos, template_a
 
 def printfit(fit, x, y):
     '''

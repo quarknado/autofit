@@ -88,7 +88,7 @@ def pyield(A, s, r, b):
     
     return part1 + part2
 
-def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True, background = False, Aarr = None, fig = True):
+def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True, background = False, Aarr = None, fig = True, posfix = False):
     
     if beta == None: beta = FWHM
 
@@ -100,7 +100,8 @@ def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True, background = 
     #default bounds for A and mu
     #A can't be less than 0 (yay the upside down peaks that you sometimes get in gf3 are no more)
     #the peak should be on the bit of spectrum that you're fitting, so mu bounded with x
-    bnd = ((0.,None), (min(x),max(x)), )
+    if not posfix: bnd = ((0.,None), (min(x),max(x)), )
+
     #bounds for metaparameters sigma, r, and beta (they are 'meta' because they should remain constant across peaks locally)
     #set sigma bound at the resolution of the detector - it's about 4 channels for Munich using the binning that I am
     #This can change though. I've set the upper bound to the FWHM input earlier just so it doesn't try to fit the background
@@ -113,7 +114,11 @@ def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True, background = 
 
     peakparams = []
     for i, pos in enumerate(muarr):      
-        p = [pos, Aarr[i]]
+        try:        
+            p = [pos, Aarr[i]]
+        except IndexError:
+            print('\n\n\n',muarr,'\n\n\n', Aarr)
+            raise IndexError
         peakparams.append(p)
     
 
@@ -126,6 +131,7 @@ def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True, background = 
     yerrarr = []
     bnds = []
     for peak in muarr:
+        if posfix: bnd = ((0.,None), (peak - 0.1, peak + 0.1 ))
         for bound in bnd:
             bnds.append(bound)
 

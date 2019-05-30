@@ -58,8 +58,10 @@ fstgo = True
 '''
 ##########################################Threshold set and Peak Region Detection###########################################################
 '''
+rlist, betalist = [],[]
+
 fitlistlist = []
-totalnfits = 3
+totalnfits = 30
 for i in range(totalnfits):  
     while True:
         if fstgo:
@@ -144,6 +146,9 @@ for i in range(totalnfits):
     ad.printfit(template_fit, template[0], template[1])
 
     rfix, betafix = template_fit[1][-2],template_fit[1][-1]
+    rlist.append(rfix)
+    betalist.append(betafix)
+
     fitlist = []
     for i, region in enumerate(peak_regions):
         xreg = region[0]
@@ -215,8 +220,7 @@ for j, fitlist in enumerate(fitlistlist):
             smfin.append(np.sqrt(ft[2][2*i + 1][2*i + 1]))
             nlist.append(j)
 
-plt.errorbar(nlist, mfin, smfin, linestyle = "")
-plt.show()
+
 
 poslist = []
 sposlist = []
@@ -243,10 +247,6 @@ for mu, smu, a in zip(mfin, smfin, afin):
 
 #print(poslist)
 
-for i, pos in enumerate(poslist):
-    plt.errorbar(np.full(len(pos), i), pos, sposlist[i], linestyle = "" )
-
-plt.show()
 
 
 muarrnew = []
@@ -257,25 +257,57 @@ for pos, a in zip(poslist, alist):
         muarrnew.append(np.average(pos))
         aarrnew.append(np.average(a))
 
+muarrnew = np.array(muarrnew)
+aarrnew = np.array(aarrnew) 
+
 #print(muarrnew, aarrnew)
+peak_regions = sig.min_region_finder(xlist, ylist, no_regions)
+i = 0
+none_indices = []
+
+
+for x2, y2 in peak_regions:
+    if len(x2) == 0:
+        none_indices.append(i)         
+        i = i + 1
+    peak_regions = np.delete(peak_regions, none_indices, axis = 0)
+
+
+
+reg_pos = []
+a_arr = []
+
+for i, region in enumerate(peak_regions):
+    xreg = np.array(region[0])
+    yreg = np.array(region[1])
+       
+    reg_pos.append(muarrnew[(muarrnew > min(xreg)) & (muarrnew < max(xreg))])
+    a_arr.append(aarrnew[(muarrnew > min(xreg)) & (muarrnew < max(xreg))])
+
+
+  
+
+rfix, betafix = np.average(rlist), np.average(betalist)
+
+
+fitlist = []
+
 
 
 for i, region in enumerate(peak_regions):
-    xreg = region[0]
-    yreg = region[1]
-            
-    reg_pos = muarrnew[(muarrnew > min(xreg)) & (muarrnew < max(xreg))]
-    a_arr = aarrnew[(muarrnew > min(xreg)) & (muarrnew < max(xreg))]
-    
+    xreg = np.array(region[0])
+    yreg = np.array(region[1])
 
-    if len(region_positions[i]) == 0: continue     
-    ft = fit.fit(xreg, yreg, reg_pos, width, FWHM, r = rfix, beta = betafix, background = bg, Aarr = a_arr)
+    if len(reg_pos[i]) == 0: continue     
+    ft = fit.fit(xreg, yreg, reg_pos[i], width, FWHM, r = rfix, beta = betafix, background = bg, Aarr = a_arr[i], posfix = True)
     ad.printfit(ft, xreg, yreg)
+
+
 
     fitlist.append(ft)
 
 
-exit()
+
 '''
 ##########################################Plot Fits and Save######################
 '''
@@ -311,12 +343,12 @@ for fit in fitlist:
 
 fil.close() 
 
-if muarrnew:
-    pos = np.zeros(len(x))
-    pos_ix = []
-    for mu in muarrnew:
-        pos_ix.append(ad.find_nearest(mu, x))
-    pos[pos_ix] = max(yclip) * 1.2
+
+pos = np.zeros(len(x))
+pos_ix = []
+for mu in muarrnew:
+    pos_ix.append(ad.find_nearest(mu, x))
+pos[pos_ix] = max(yclip) * 1.2
 
 a.plot(x, pos, linewidth = 1)
 
