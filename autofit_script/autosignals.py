@@ -15,11 +15,11 @@ import adminfunctions as ad
 #it's to convolve the whole spectrum with a gaussian equal to the width of the FWHM. It should be shorter than the length of the spectrum, considerably longer than the FWHM
 smoothlength = 200
 
-def baseline_subtraction(x,y):    
+def baseline_subtraction(x,y, fstgo):    
     
     print('The channel with the minimum counts in each segment will be a point on a segmented linearly interpolated background.')
 
-    min_indices, min_x_list, min_y_list, x_split_list, y_split_list = min_spectrum_split(x, y)
+    min_indices, min_x_list, min_y_list, x_split_list, y_split_list = min_spectrum_split(x, y, fstgo)
 
     interp_function = sp.interpolate.interp1d(min_x_list, min_y_list, kind = 'linear', fill_value = 'extrapolate')    
 
@@ -35,8 +35,7 @@ def baseline_subtraction(x,y):
     
     return( y - interp_function(x))
 
-def min_spectrum_split(x, y, base_split = None):
-
+def min_spectrum_split(x, y, fstgo, base_split = None):
     if base_split == None:
         while True:    
             try:        
@@ -56,6 +55,7 @@ def min_spectrum_split(x, y, base_split = None):
         min_index = np.where(y_split_list[i] == min(y_split_list[i]))[0]        
         #sometimes there will be more than one channel with the minimum y. As to not bias this algortithm, I'll pick this randomly.        
         if len(min_index) > 1:
+            if fstgo: print("The number of minima to choose from section ", i, " is:", len(min_index))
             min_index = random.choice(min_index)
         min_index = int(min_index)
         min_x = partx[min_index]
@@ -71,7 +71,7 @@ def min_spectrum_split(x, y, base_split = None):
 
     return(min_indices, min_x_list, min_y_list, x_split_list, y_split_list)
 
-def min_region_finder(xlist, ylist, no_regions):
+def min_region_finder(xlist, ylist, no_regions, fstgo):
     len_xlist = []
     for x in xlist:
         len_xlist.append(len(x))
@@ -83,7 +83,7 @@ def min_region_finder(xlist, ylist, no_regions):
     for x, y in zip(xlist, ylist):
         no_individual_regions = np.around((len(x)/total_length) * no_regions)
         if no_individual_regions != 0:        
-            split = min_spectrum_split(x,y, base_split = no_individual_regions)
+            split = min_spectrum_split(x,y, fstgo, base_split = no_individual_regions)
         else:
             split = [[],[],[],[x],[y]]        
         regions_list_x = split[3]

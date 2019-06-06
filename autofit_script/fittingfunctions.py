@@ -263,44 +263,70 @@ def p1_fixer(p1, rbfix, background, mets):
 
 def cov_fixer(cov, rbfix, background):    
     if rbfix:
-        cov = add2(cov) 
         if not background:
+            scov = cov[-1]
+            scovlong = np.insert(scov, -1, [0.,0.])
+            scovlong = np.expand_dims(scovlong, axis = 1)
+            scovshort = np.delete(scov, -1)
+            scovshort = np.append(scovshort, [0, 0])
+            scovshort = np.expand_dims(scovshort, axis = 0)
+            cov = np.delete(cov,-1, axis = 0)
+            cov = np.delete(cov,-1, axis = 1)
             cov = add2(cov)
+            cov = np.append(cov, scovshort, axis = 0)
+            cov = np.append(cov, scovlong, axis = 1)
+ 
+        cov = add2(cov)
     else:
         if not background:
+            scov = cov[-3]
             rcov = cov[-2]
             bcov = cov[-1]
 
-            rcovlong = np.insert(rcov, -2, [0.,0.])
-            bcovlong = np.insert(bcov, -2, [0.,0.])
+            scovlong = np.insert(scov, -3, [0.,0.])
+            rcovlong = np.insert(rcov, -3, [0.,0.])
+            bcovlong = np.insert(bcov, -3, [0.,0.])
 
+            scovlong = np.expand_dims(scovlong, axis = 1)
             rcovlong = np.expand_dims(rcovlong, axis = 1)
             bcovlong = np.expand_dims(bcovlong, axis = 1)
 
 
+            scovshort = np.delete(scov, -1)
+            scovshort = np.delete(scovshort, -1)
+            scovshort = np.delete(scovshort, -1)
             rcovshort = np.delete(rcov, -1)
+            rcovshort = np.delete(rcovshort, -1)
             rcovshort = np.delete(rcovshort, -1)
             bcovshort = np.delete(bcov, -1)
             bcovshort = np.delete(bcovshort, -1)
+            bcovshort = np.delete(bcovshort, -1)
 
+            scovshort = np.append(scovshort, [0, 0])
             rcovshort = np.append(rcovshort, [0, 0])
             bcovshort = np.append(bcovshort, [0, 0])
-            
+
+            scovshort = np.expand_dims(scovshort, axis = 0)            
             rcovshort = np.expand_dims(rcovshort, axis = 0)
             bcovshort = np.expand_dims(bcovshort, axis = 0)
             
 
             cov = np.delete(cov,-1, axis = 0)
             cov = np.delete(cov,-1, axis = 0)
+            cov = np.delete(cov,-1, axis = 0)
             cov = np.delete(cov,-1, axis = 1)
             cov = np.delete(cov,-1, axis = 1)
+            cov = np.delete(cov,-1, axis = 1)
+
+
             cov = add2(cov)
 
 
+            cov = np.append(cov, scovshort, axis = 0)
             cov = np.append(cov, rcovshort, axis = 0)
-
             cov = np.append(cov, bcovshort, axis = 0)
 
+            cov = np.append(cov, scovlong, axis = 1)
             cov = np.append(cov, rcovlong, axis = 1)
             cov = np.append(cov, bcovlong, axis = 1)
             

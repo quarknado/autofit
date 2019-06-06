@@ -17,6 +17,7 @@ import adminfunctions as ad
 import fittingfunctions as fit
 import autosignals as sig
 
+fstgo = True
 
 '''
 ####################################### Read File and Show Spectrum #############################################
@@ -34,7 +35,7 @@ x, yinit = ad.file_reader(directory + '/' + f)
 spe = ad.spectrum_plotter(x, yinit)
 spe.show()
 
-
+yinit = sig.baseline_subtraction(x,yinit, fstgo)
 
 
 '''
@@ -53,7 +54,7 @@ for x2, y2 in zip(xlist, ylist):
     plt.plot(x2, y2)
 plt.show()
 
-fstgo = True 
+ 
 
 '''
 ##########################################Threshold set and Peak Region Detection###########################################################
@@ -61,7 +62,7 @@ fstgo = True
 rlist, betalist = [],[]
 
 fitlistlist = []
-totalnfits = 30
+totalnfits = 50
 for i in range(totalnfits):  
     while True:
         if fstgo:
@@ -74,7 +75,7 @@ for i in range(totalnfits):
             len_regions = float(input('Approximately how many channels long would you like your fitting segments to be?'))
             no_regions = len(x)/len_regions     
     
-        peak_regions = sig.min_region_finder(xlist, ylist, no_regions)
+        peak_regions = sig.min_region_finder(xlist, ylist, no_regions, fstgo)
         i = 0
         none_indices = []
         for x2, y2 in peak_regions:
@@ -220,6 +221,8 @@ for j, fitlist in enumerate(fitlistlist):
             smfin.append(np.sqrt(ft[2][2*i + 1][2*i + 1]))
             nlist.append(j)
 
+plt.errorbar(nlist, mfin, smfin, linestyle = "")
+plt.show()
 
 
 poslist = []
@@ -234,18 +237,21 @@ for mu, smu, a in zip(mfin, smfin, afin):
         z = np.abs(mu - p)/s
         if np.isnan(p): z = 10000
  
-        if z < 2:
+        if z < 3.5:
             pos.append(mu)
             spos.append(smu)
             h.append(a)
             break
-    if z < 2: continue
+    if z < 3.5: continue
     
     poslist.append([mu])
     sposlist.append([smu])
     alist.append([a])
 
-#print(poslist)
+for i, pos in enumerate(poslist):
+    plt.errorbar(np.full(len(pos), i), pos, sposlist[i], linestyle = "" )
+
+plt.show()
 
 
 
@@ -253,7 +259,7 @@ muarrnew = []
 aarrnew = []
 #print(alist)
 for pos, a in zip(poslist, alist):
-    if len(pos) > 0.8 * totalnfits:
+    if len(pos) > 0.85 * totalnfits:
         muarrnew.append(np.average(pos))
         aarrnew.append(np.average(a))
 
@@ -261,7 +267,7 @@ muarrnew = np.array(muarrnew)
 aarrnew = np.array(aarrnew) 
 
 #print(muarrnew, aarrnew)
-peak_regions = sig.min_region_finder(xlist, ylist, no_regions)
+peak_regions = sig.min_region_finder(xlist, ylist, no_regions, fstgo)
 i = 0
 none_indices = []
 
@@ -338,7 +344,7 @@ for fit in fitlist:
         j = j + 1
     #save peaks to file
     for i, peak in enumerate(fit[3]):
-        line = str(fit[1][2 * i + 1])  + ' ' + str(np.sqrt(fit[2][2 * i + 1][2 * i + 1])) + ' ' + str(peak) + ' ' + str(fit[4][i]) + ' ' + str(fit[1][-3]) + ' ' + str(np.sqrt(fit[2][-5][-5])) + ' ' + str(fit[1][-2]) + ' ' + str(fit[1][-1]) + '\n'
+        line = str(fit[1][2 * i + 1])  + ' ' + str(np.sqrt(fit[2][2 * i + 1][2 * i + 1])) + ' ' + str(peak) + ' ' + str(fit[4][i]) + ' ' + str(fit[1][-3]) + ' ' + str(np.sqrt(fit[2][-3][-3])) + ' ' + str(fit[1][-2]) + ' ' + str(fit[1][-1]) + '\n'
         fil.write(line)
 
 fil.close() 
