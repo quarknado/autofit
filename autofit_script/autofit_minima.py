@@ -146,7 +146,7 @@ for i in range(totalnfits):
     template_fit = fit.fit(template[0], template[1], template_pos, width, FWHM, rbfix = False, background = bg, fig = False)
     ad.printfit(template_fit, template[0], template[1])
 
-    rfix, betafix = template_fit[1][-2],template_fit[1][-1]
+    rfix, betafix = 50,10#template_fit[1][-2],template_fit[1][-1]
     rlist.append(rfix)
     betalist.append(betafix)
 

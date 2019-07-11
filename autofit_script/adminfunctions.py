@@ -6,7 +6,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-def file_reader(handle):
+def file_reader(handle, delete_0 = True):
     '''
     Reads a file given a handle. The types of files that it reads are 2 column data - histograms with slightly weird binning so you can't just use 1 column and then 1,2,3,4, etc for the bin data.
     I've done it so it can read things that are comma separated and space separated. Again it's a bit weird because it's specific to things created with a 'dump' function that I have for converting
@@ -46,9 +46,10 @@ def file_reader(handle):
     ymeas = np.array(ymeas)
     xvals = np.array(xvals)
 
-    #gets rid of the 0 channel dump. Usually in these things the first channel contains all of the dead time counts, which are to be ignored.
-    ymeas = np.delete(ymeas, [0])
-    xvals = np.delete(xvals, [0])
+    if delete_0:
+        #gets rid of the 0 channel dump. Usually in these things the first channel contains all of the dead time counts, which are to be ignored.
+        ymeas = np.delete(ymeas, [0])
+        xvals = np.delete(xvals, [0])
 
     print('successfully read ', handle)
 
