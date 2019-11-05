@@ -11,6 +11,8 @@ import random
 
 import adminfunctions as ad
 
+
+
 #number of points in smoothing gaussian. This is fairly abitrary, it's just to make sure all of the gaussian is recorded, and to a decent resolution
 #it's to convolve the whole spectrum with a gaussian equal to the width of the FWHM. It should be shorter than the length of the spectrum, considerably longer than the FWHM
 smoothlength = 200

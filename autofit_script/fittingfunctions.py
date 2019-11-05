@@ -6,7 +6,7 @@ import numpy as np
 from scipy.signal import find_peaks_cwt
 from scipy.special import erfc
 import matplotlib.pyplot as plt
-import scipy.optimize as op
+from scipy.optimize import minimize
 
 import autosignals as sig
 import adminfunctions as ad
@@ -36,6 +36,7 @@ def gf3(p0, x):
     return ymod
 
 #define log likelihood, the thing we want to maximise
+
 def lnlike(p0, x, y, background, mets = None):
     n_end = 1    
     if background:
@@ -66,14 +67,23 @@ def lnlike(p0, x, y, background, mets = None):
             ymod += gf3(p1,x)
     
     if background:
-        ymod += p0[-n_end] * x + p0[-n_end + 1]
-
+        ymod += p0[-n_end] * (x - min(x)) + p0[-n_end + 1]
+        #plt.plot(x,y)
+        #plt.plot(x, ymod)
+        #plt.show()
     # Poisson loglikelihood for the model compared to the data:
     try:
         ll = np.sum(ymod[np.where(y!=0)]*np.log(y[np.where(y!=0)])) - np.sum(y) - np.sum(ymod[np.where(ymod!=0)]*np.log(ymod[np.where(ymod!=0)]) - ymod[np.where(ymod!=0)])
     except TypeError:
         print('ymod = ', ymod)
         print('y = ', y)
+    except RuntimeWarning:
+        warnings.filterwarnings("ignore")
+        print(y, '\n\n\n')
+        print(np.sum(ymod[np.where(y!=0)]*np.log(y[np.where(y!=0)])) - np.sum(y) - np.sum(ymod[np.where(ymod!=0)]*np.log(ymod[np.where(ymod!=0)]) - ymod[np.where(ymod!=0)]))
+        print(np.log(y[np.where(y!=0)]))
+        print(np.log(ymod[np.where(ymod!=0)]))
+        raise ValueError
                
     return ll
 
@@ -108,7 +118,7 @@ def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True, background = 
     #It can't be negative either
     #R can only be between 0 and 100 since it's a percentage of the height
     #Beta can be any positive number
-    metabnd = ((0.1,FWHM), (0.1, 100), (0.1,None))
+    metabnd = ((0.,FWHM), (0., 100), (0.,None))
     mets = [sig, r, beta]
 
 
@@ -144,24 +154,29 @@ def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True, background = 
     individual_peaks = []
 
     if background:
-        bg_bnd = ((None, 0.), (0., max(y)))
+        bg_bnd = ((0., 1e-6), (0., None))
 
         for bnd in bg_bnd:
             bnds.append(bnd)
         
-        for i in range(2): p0.append(0) #default 0 background
+        background_gradient = 0#(y[-1] - y[0]) / (x[-1] - x[0])
+        background_offset = min(y)#y[-1] - background_gradient - x[-1]
+        p0.append(background_gradient)
+        p0.append(background_offset)
 
     if not rbfix:
         for bnd in metabnd:
             bnds.append(bnd)
         for met in mets:
             p0.append(met)
-        result = op.minimize(nll, p0, bounds=bnds, args=(x, y, background))
+        print(bnds)
+        result = minimize(nll, p0, bounds=bnds, args=(x, y, background))
 
     else:
         bnds.append(metabnd[0])
         p0.append(mets[0])
-        result = op.minimize(nll, p0, bounds=bnds, args=(x,y, background, mets))
+        print(bnds)
+        result = minimize(nll, p0, bounds=bnds, args=(x,y, background, mets))
         
     p1 = result["x"]    
     p1cov = result["hess_inv"].todense()
@@ -181,9 +196,10 @@ def fit(x, y, muarr, sig, FWHM, r = 50, beta = None, rbfix = True, background = 
 
         yielerr = yerr(yiel,p2[0],p2[2],p2[3],p2[4], shrinkcov(p1cov, i)) 
         yerrarr.append(yielerr)
-
-    ymod += p1[-5] * x + p1[-4]
-    if fig: fitax.plot(x,p1[-5] * x + p1[-4])       
+    #print(p1)
+    #print(p1[-5], p1[-4])
+    ymod += p1[-5] * (x - min(x)) + p1[-4]
+    if fig: fitax.plot(x,p1[-5] * (x - min(x)) + p1[-4])       
 
 
     #print('yield = ', yieldarr, ' +- ', yerrarr,)

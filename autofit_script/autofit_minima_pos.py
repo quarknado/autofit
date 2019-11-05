@@ -154,7 +154,7 @@ for i in range(totalnfits):
         xreg = region[0]
         yreg = region[1]
         if len(region_positions[i]) == 0: continue     
-        ft = fit.fit(xreg, yreg, region_positions[i], width, FWHM, r = rfix, beta = betafix, background = bg, fig = True)
+        ft = fit.fit(xreg, yreg, region_positions[i], width, FWHM, r = rfix, beta = betafix, background = bg, fig = False)
         ad.printfit(ft, xreg, yreg)
 
         fitlist.append(ft)
@@ -172,7 +172,7 @@ for i in range(totalnfits):
         for ft in fitlist:
             for i, yiel in enumerate(ft[3]):
                 if not np.isnan(ft[4][i]):
-                    if yiel > 0.0000001 * ft[4][i]:
+                    if yiel > 2 * ft[4][i]:
                         muarrnew.append(ft[1][2 * i + 1])
                         aarrnew.append(ft[1][2 * i])
                     
@@ -196,7 +196,7 @@ for i in range(totalnfits):
     
 
             if len(region_positions[i]) == 0: continue     
-            ft = fit.fit(xreg, yreg, reg_pos, width, FWHM, r = rfix, beta = betafix, background = bg, Aarr = a_arr, fig = True)
+            ft = fit.fit(xreg, yreg, reg_pos, width, FWHM, r = rfix, beta = betafix, background = bg, Aarr = a_arr, fig = False)
             ad.printfit(ft, xreg, yreg)
 
             fitlist.append(ft)
@@ -210,59 +210,33 @@ for i in range(totalnfits):
 afin = []
 mfin = []
 smfin = []
-ctrfin = []
-sctrfin = []
 nlist = []
 
 for j, fitlist in enumerate(fitlistlist):
     for ft in fitlist:
-        print(len(ft[3]),len(ft[6]))
         for i, yiel in enumerate(ft[3]):
             mfin.append(ft[1][2 * i + 1])
             afin.append(ft[1][2 * i])
             smfin.append(np.sqrt(ft[2][2*i + 1][2*i + 1]))
             nlist.append(j)
-        for i, peak in enumerate(ft[6]):
-            x2 = ft[7]
-            centroid = np.sum(peak * x2)/np.sum(peak)
-            ctrfin.append(centroid)
-            sctrfin.append(np.sqrt(ft[2][2*i + 1][2*i + 1]))
-            #sctrfin.append((np.sum(peak * x2 ** 2)/np.sum(peak) - centroid ** 2)/ np.sqrt(np.sum(peak)))
 
 plt.errorbar(nlist, mfin, smfin, linestyle = "")
 plt.show()
 
-plt.errorbar(mfin,ctrfin,smfin, fmt = 'x')
-plt.show()
 
 poslist = []
 sposlist = []
 alist = []
-centroidlist = []
-scentroidlist = []
-
-#print(ctrfin, '\n\n\n\n\n')
-
-
-
-for mu, smu, a, ctr, sctr in zip(mfin, smfin, afin, ctrfin, sctrfin):
+for mu, smu, a in zip(mfin, smfin, afin):
     z = 10000
-    for pos, spos, h, cent, scent in zip(poslist,sposlist, alist, centroidlist, scentroidlist):
-        '''p,sp = np.average(pos, weights = 1/np.array(spos)**2, returned = True)
+    for pos, spos, h in zip(poslist,sposlist, alist):
+        p,sp = np.average(pos, weights = 1/np.array(spos)**2, returned = True)
         sp = sp ** (-0.5)
         s = np.sqrt(sp**2 + smu**2)
         z = np.abs(mu - p)/s
-        '''
-        c,sc = np.average(cent, weights = 1/np.array(scent)**2, returned = True)
-        sc = sc ** (-0.5)
-        s = np.sqrt(sc**2 + sctr**2)
-        z = np.abs(ctr - c)/s
-        
-        if np.isnan(c): z = 10000
+        if np.isnan(p): z = 10000
  
         if z < 3.5:
-            cent.append(ctr)
-            scent.append(sctr)
             pos.append(mu)
             spos.append(smu)
             h.append(a)
@@ -272,8 +246,6 @@ for mu, smu, a, ctr, sctr in zip(mfin, smfin, afin, ctrfin, sctrfin):
     poslist.append([mu])
     sposlist.append([smu])
     alist.append([a])
-    centroidlist.append([ctr])
-    scentroidlist.append([sctr])
 
 for i, pos in enumerate(poslist):
     plt.errorbar(np.full(len(pos), i), pos, sposlist[i], linestyle = "" )
